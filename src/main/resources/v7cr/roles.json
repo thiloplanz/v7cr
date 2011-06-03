@@ -1,0 +1,24 @@
+[
+{
+	"_id" : "admin",
+	"name" : "System Administrators"
+},
+{
+	"_id" : "connect",
+	"member" : [
+		{ "_id" : "admin",
+		  "n" : "System Administrators"
+		}
+	],
+	"name" : "Allowed to login"
+},
+{
+	"_id": "project:bitcoinj",
+	"member" : [
+		{ "_id" : "connect",
+		  "n": "anyone who can login here"
+		}],
+	"name" : "Reviewers for 'bitcoinj'"
+}
+]
+ 
