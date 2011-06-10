@@ -1,0 +1,13 @@
+{
+    "description": "Schema for the Review document",
+    "fields" : {
+    	"t" : {
+    	 	"caption": "Title"
+    	},
+    	"s" : {
+    		"caption": "Status"
+    	}
+    }
+	
+
+}

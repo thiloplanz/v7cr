@@ -17,13 +17,19 @@
 
 package v7cr;
 
+import java.util.List;
+
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
+import org.apache.commons.io.IOUtils;
+
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.util.JSON;
 
 /**
  * Manages the connection to MongoDB
@@ -35,23 +41,27 @@ public class InitDB implements ServletContextListener {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	public void contextInitialized(ServletContextEvent e) {
 		try {
 			Mongo db = new Mongo();
 
 			ServletContext c = e.getServletContext();
 			c.setAttribute(getClass().getName(), db);
-			
-			// save the roles table
-			// TODO: of course, this should not be reset every time...
-			
-//			String json = IOUtils.toString(getClass().getResourceAsStream("roles.json"));
-//			List<BSONObject> l = (List<BSONObject>) JSON.parse(json);
-//			DBCollection roles = getDBCollection(c, "roles");
-//			for (BSONObject r: l){
-//				roles.save((DBObject)r);
-//			}
-//			
+
+			// check if the "roles" collection
+			// exists, if not create it
+
+			if (getDBCollection(c, "roles").findOne() == null) {
+				String json = IOUtils.toString(getClass().getResourceAsStream(
+						"roles.json"));
+				List<DBObject> l = (List<DBObject>) JSON.parse(json);
+				DBCollection roles = getDBCollection(c, "roles");
+				for (DBObject r : l) {
+					roles.save(r);
+				}
+
+			}
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -60,13 +70,13 @@ public class InitDB implements ServletContextListener {
 	static Mongo getMongo(ServletContext c) {
 		return (Mongo) c.getAttribute(InitDB.class.getName());
 	}
-	
-	static DB getDB(ServletContext c){
+
+	static DB getDB(ServletContext c) {
 		return getMongo(c).getDB("v7cr");
 	}
 
-	static DBCollection getDBCollection(ServletContext c, String name){
+	static DBCollection getDBCollection(ServletContext c, String name) {
 		return getDB(c).getCollection(name);
 	}
-	
+
 }

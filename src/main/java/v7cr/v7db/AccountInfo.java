@@ -17,15 +17,13 @@
 
 package v7cr.v7db;
 
-
 public class AccountInfo extends BSONBackedObject {
-
 
 	public AccountInfo(String id, final String name) {
 		super(new BSONBackedObject().append("_id", id).append("n", name), null);
 	}
 
-	AccountInfo(BSONBackedObject b) {
+	public AccountInfo(BSONBackedObject b) {
 		super(b, null);
 	}
 

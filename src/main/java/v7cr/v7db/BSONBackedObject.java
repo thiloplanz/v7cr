@@ -19,19 +19,30 @@ package v7cr.v7db;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.ObjectId;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 
 /**
  * An object whose properties are contained in a BSONObject, optionally using a
  * SchemaDefinition.
  * 
  * The object is immutable, subclasses must adhere to this contract.
+ * 
+ * It also provides a selection of useful accessor and mutator methods,
+ * including support for nested fields. Since the object is immutable, the
+ * mutator methods return a modified copy.
+ * 
  * 
  */
 
@@ -66,8 +77,40 @@ public class BSONBackedObject {
 		return bson.keySet().isEmpty();
 	}
 
+	// for nested fields
+	// returns { parentObject, localFieldName }
+
+	private static Object[] drillDownToParent(Map<?, ?> data, String field) {
+		if (field == null) {
+			return null;
+		}
+		int idx = field.indexOf('.');
+		if (idx == -1) {
+			return new Object[] { data, field };
+		}
+		String head = field.substring(0, idx);
+		String tail = field.substring(idx + 1);
+		Object o = data.get(head);
+		if (o instanceof Map<?, ?>) {
+			return drillDownToParent((Map<?, ?>) o, tail);
+		}
+		return null;
+	}
+
+	// for nested fields
+	private Object drillDown(String field) {
+		Object[] d = drillDownToParent(bson, field);
+		if (d == null)
+			return null;
+		return ((Map<?, ?>) d[0]).get(d[1]);
+	}
+
 	public boolean containsField(String field) {
-		return bson.containsField(field);
+		Object[] d = drillDownToParent(bson, field);
+		if (d == null)
+			return false;
+
+		return ((Map<?, ?>) d[0]).containsKey(field);
 	}
 
 	public Set<String> getFieldNames() {
@@ -75,7 +118,7 @@ public class BSONBackedObject {
 	}
 
 	public String getStringField(String field) {
-		return (String) bson.get(field);
+		return (String) drillDown(field);
 	}
 
 	/**
@@ -83,7 +126,7 @@ public class BSONBackedObject {
 	 * return all of them as an array. An empty array will be returned as null.
 	 */
 	public String[] getStringFieldAsArray(String field) {
-		Object o = bson.get(field);
+		Object o = drillDown(field);
 		if (o == null)
 			return null;
 		if (o instanceof String)
@@ -105,10 +148,23 @@ public class BSONBackedObject {
 		throw new RuntimeException("not a string field " + o);
 	}
 
+	public ObjectId getObjectIdField(String field) {
+		return (ObjectId) drillDown(field);
+	}
+
+	public Long getLongField(String field) {
+		return (Long) drillDown(field);
+	}
+
+	public Date getDateField(String field) {
+		return (Date) drillDown(field);
+	}
+
 	/**
 	 * returns the string representation of the BSON data that backs this
 	 * object.
 	 */
+	@Override
 	public String toString() {
 		return bson.toString();
 	}
@@ -124,8 +180,15 @@ public class BSONBackedObject {
 		return (BasicBSONObject) BSON.decode(BSON.encode(bson));
 	}
 
+	/**
+	 * @return a copy of the underlying BSON data
+	 */
+	public DBObject getDBObject() {
+		return new BasicDBObject(getBSONObject());
+	}
+
 	public BSONBackedObject getObjectField(String fieldName) {
-		Object o = bson.get(fieldName);
+		Object o = drillDown(fieldName);
 		if (o == null)
 			return null;
 		if (o instanceof BasicBSONObject) {
@@ -139,13 +202,11 @@ public class BSONBackedObject {
 	 * all of them as an array. An empty array will be returned as null.
 	 */
 	public BSONBackedObject[] getObjectFieldAsArray(String field) {
-		Object o = bson.get(field);
+		Object o = drillDown(field);
 		if (o == null)
 			return null;
 		if (o instanceof Object[]) {
 			o = Arrays.asList((Object[]) o);
-			// get rid of the array for the next time
-			bson.put(field, o);
 		}
 		if (o instanceof List<?>) {
 			List<?> l = (List<?>) o;
@@ -189,17 +250,61 @@ public class BSONBackedObject {
 		return bson.hashCode();
 	}
 
+	// for nested fields
+	// returns { root, parent }
+	private static BasicBSONObject[] createPath(Map<?, ?> data, String field) {
+		if (field == null)
+			return null;
+		int idx = field.indexOf('.');
+		if (idx == -1) {
+			BasicBSONObject copy = new BasicBSONObject();
+			copy.putAll((BSONObject) data);
+			return new BasicBSONObject[] { copy, copy };
+		}
+		String head = field.substring(0, idx);
+		String tail = field.substring(idx + 1);
+		Object x = data.get(head);
+		if (x instanceof Map<?, ?>) {
+			BasicBSONObject copy = new BasicBSONObject();
+			copy.putAll((BSONObject) data);
+			try {
+				BasicBSONObject[] r = createPath((Map<?, ?>) x, tail);
+				copy.put(head, r[0]);
+				return new BasicBSONObject[] { copy, r[1] };
+
+			} catch (UnsupportedOperationException e) {
+				throw new UnsupportedOperationException(field
+						+ " is not a valid path", e);
+			}
+		}
+		if (x == null) {
+			BasicBSONObject copy = new BasicBSONObject();
+			copy.putAll((BSONObject) data);
+			BasicBSONObject vivi = new BasicBSONObject();
+			copy.put(head, vivi);
+			return new BasicBSONObject[] { copy, vivi };
+		}
+		throw new UnsupportedOperationException(field + " is not a valid path");
+	}
+
 	private BSONBackedObject _append(String key, Object value) {
-		Set<String> fields = bson.keySet();
-		BasicBSONObject copy = new BasicBSONObject(fields.size() + 1);
-		copy.putAll((BSONObject) bson);
-		copy.put(key, value);
-		return new BSONBackedObject(copy, schema);
+		BasicBSONObject[] path = createPath(bson, key);
+		if (path == null)
+			throw new UnsupportedOperationException(key
+					+ " is not a valid path");
+
+		int idx = key.lastIndexOf('.');
+		String localKey = idx == -1 ? key : key.substring(idx + 1);
+		path[1].put(localKey, value);
+		return new BSONBackedObject(path[0], schema);
 	}
 
 	/**
 	 * Since the object is immutable, all "append" methods return a modified
 	 * copy that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 	public BSONBackedObject append(String key, String value) {
 		return _append(key, value);
@@ -208,13 +313,16 @@ public class BSONBackedObject {
 	/**
 	 * Since the object is immutable, all "append" methods return a modified
 	 * copy that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 	public BSONBackedObject append(String key, BSONBackedObject value) {
 		return _append(key, value.bson);
 	}
 
 	private List<Object> getList(String key) {
-		Object o = bson.get(key);
+		Object o = drillDown(key);
 		if (o == null)
 			return new ArrayList<Object>();
 		if (o instanceof List<?>)
@@ -227,6 +335,17 @@ public class BSONBackedObject {
 		return l;
 	}
 
+	private BSONBackedObject _push(String key, Object value) {
+		List<Object> l = getList(key);
+		if (l == null) {
+			createPath(bson, key);
+			l = new ArrayList<Object>(1);
+		}
+		l.add(value);
+		return _append(key, l);
+
+	}
+
 	/**
 	 * Adds the value to the end of the array. A new array will be created if
 	 * missing, and a previously single element will be turned into an array
@@ -234,15 +353,15 @@ public class BSONBackedObject {
 	 * <p>
 	 * Since the object is immutable, all "push" methods return a modified copy
 	 * that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 
 	public BSONBackedObject push(String key, String value) {
-		List<Object> l = getList(key);
-		l.add(value);
-		return _append(key, l);
+		return _push(key, value);
 	}
 
-	
 	/**
 	 * Adds the value to the end of the array. A new array will be created if
 	 * missing, and a previously single element will be turned into an array
@@ -250,23 +369,26 @@ public class BSONBackedObject {
 	 * <p>
 	 * Since the object is immutable, all "push" methods return a modified copy
 	 * that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 
 	public BSONBackedObject push(String key, BSONBackedObject value) {
-		List<Object> l = getList(key);
-		l.add(value.bson);
-		return _append(key, l);
+		return _push(key, value.bson);
 	}
 
-	
 	/**
-	 * Adds the value to the end of the array, but only if the entry is not already there.
-	 * A new array will be created if
-	 * missing, and a previously single element will be turned into an array
-	 * (does not raise an error like MongoDB's $addToSet operator would).
+	 * Adds the value to the end of the array, but only if the entry is not
+	 * already there. A new array will be created if missing, and a previously
+	 * single element will be turned into an array (does not raise an error like
+	 * MongoDB's $addToSet operator would).
 	 * <p>
-	 * Since the object is immutable, all "addToSet" methods return a modified copy
-	 * that contains the new value.
+	 * Since the object is immutable, all "addToSet" methods return a modified
+	 * copy that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 
 	public BSONBackedObject addToSet(String key, String value) {
@@ -276,15 +398,18 @@ public class BSONBackedObject {
 		l.add(value);
 		return _append(key, l);
 	}
-	
+
 	/**
-	 * Adds the value to the end of the array, but only if the entry is not already there.
-	 * A new array will be created if
-	 * missing, and a previously single element will be turned into an array
-	 * (does not raise an error like MongoDB's $addToSet operator would).
+	 * Adds the value to the end of the array, but only if the entry is not
+	 * already there. A new array will be created if missing, and a previously
+	 * single element will be turned into an array (does not raise an error like
+	 * MongoDB's $addToSet operator would).
 	 * <p>
-	 * Since the object is immutable, all "addToSet" methods return a modified copy
-	 * that contains the new value.
+	 * Since the object is immutable, all "addToSet" methods return a modified
+	 * copy that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
 	 */
 
 	public BSONBackedObject addToSet(String key, BSONBackedObject value) {

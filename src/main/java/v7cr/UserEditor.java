@@ -18,12 +18,11 @@
 package v7cr;
 
 import v7cr.v7db.AccountInfo;
-import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.Role;
 
-import com.mongodb.DBCollection;
 import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.data.validator.EmailValidator;
+import com.vaadin.terminal.ThemeResource;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.Form;
@@ -34,10 +33,11 @@ import com.vaadin.ui.Button.ClickListener;
 
 class UserEditor extends CustomComponent implements ClickListener {
 
-	private Form userForm = new Form();
+	private final Form userForm = new Form();
 
 	UserEditor() {
 		setCaption("Register Users");
+		setIcon(new ThemeResource("../runo/icons/16/user.png"));
 		HorizontalLayout hl = new HorizontalLayout();
 		setCompositionRoot(hl);
 
@@ -63,7 +63,7 @@ class UserEditor extends CustomComponent implements ClickListener {
 			String id = userForm.getField("id").getValue().toString();
 			String name = userForm.getField("name").getValue().toString();
 			AccountInfo ac = new AccountInfo(id, name);
-			
+
 			V7CR v7cr = V7CR.getInstance();
 			Role connect = new Role(v7cr.load("roles", "connect"));
 			connect = connect.addMember(ac);

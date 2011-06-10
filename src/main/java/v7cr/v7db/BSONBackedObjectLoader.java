@@ -18,6 +18,7 @@
 package v7cr.v7db;
 
 import org.bson.BSON;
+import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
 import com.mongodb.DBCollection;
@@ -35,6 +36,14 @@ import com.mongodb.util.JSON;
  */
 
 public class BSONBackedObjectLoader {
+
+	/**
+	 * wraps around a given BSONObject, but makes a defensive copy first
+	 */
+	public static BSONBackedObject wrap(BSONObject o, SchemaDefinition schema) {
+		// TODO: cheaper cloning in Java-land
+		return decode(BSON.encode(o), schema);
+	}
 
 	public static BSONBackedObject decode(byte[] bson, SchemaDefinition schema) {
 		return new BSONBackedObject((BasicBSONObject) BSON.decode(bson), schema);

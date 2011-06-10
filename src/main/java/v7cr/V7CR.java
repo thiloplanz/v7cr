@@ -17,10 +17,15 @@
 
 package v7cr;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang.StringUtils;
+import org.bson.types.ObjectId;
 
 import v7cr.v7db.AccountInfo;
 import v7cr.v7db.BSONBackedObject;
@@ -30,9 +35,11 @@ import v7cr.v7db.SessionInfo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import com.vaadin.Application;
 import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 import com.vaadin.terminal.gwt.server.WebApplicationContext;
+import com.vaadin.ui.Window;
 
 /**
  * The Application's "main" class
@@ -87,9 +94,49 @@ public class V7CR extends Application implements HttpServletRequestListener {
 				null);
 	}
 
+	Object findId(String collection, DBObject criteria) {
+		DBObject o = getDBCollection(collection).findOne(criteria,
+				new BasicDBObject());
+		if (o == null)
+			return null;
+		return o.get("_id");
+	}
+
+	List<BSONBackedObject> find(String collection) {
+		List<BSONBackedObject> result = new ArrayList<BSONBackedObject>();
+		for (DBObject d : getDBCollection(collection).find()) {
+			result.add(BSONBackedObjectLoader.wrap(d, null));
+		}
+		return result;
+	}
+
 	void save(String collection, BSONBackedObject object) {
 		getDBCollection(collection).save(
 				new BasicDBObject(object.getBSONObject()));
 	}
 
+	void save(String collection, DBObject object) {
+		getDBCollection(collection).save(object);
+	}
+
+	@Override
+	public Window getWindow(String name) {
+		Window x = super.getWindow(name);
+		if (x != null)
+			return x;
+
+		if (name.contains("-")) {
+			String[] pjt_rev = StringUtils.split(name, '-');
+			Object reviewId = findId("reviews", new BasicDBObject("p",
+					pjt_rev[0]).append("svn.rev", Long.parseLong(pjt_rev[1])));
+			if (reviewId instanceof ObjectId) {
+				Window reviewWindow = new Window(name);
+				reviewWindow.addComponent(new ReviewTab((ObjectId) reviewId));
+				addWindow(reviewWindow);
+				return reviewWindow;
+			}
+		}
+
+		return null;
+	}
 }

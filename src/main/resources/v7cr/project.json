@@ -1,0 +1,16 @@
+{
+    "description": "Schema for the Project description",
+    "fields" : {
+    	"repo" : {
+    	 	"caption": "Source repository URL"
+    	},
+    	"viewChanges" : {
+    		"caption": "Web page URL to view changesets"
+    	},
+    	"name" : {
+    		"caption": "Project name"
+    	}
+    }
+	
+
+}

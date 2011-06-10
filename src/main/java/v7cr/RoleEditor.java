@@ -24,16 +24,18 @@ import java.util.List;
 import org.bson.BSONObject;
 
 import v7cr.v7db.AccountInfo;
+import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.Role;
 import v7cr.v7db.Roles;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.vaadin.data.Property.ValueChangeEvent;
-import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.event.ItemClickEvent;
+import com.vaadin.event.ItemClickEvent.ItemClickListener;
+import com.vaadin.terminal.ThemeResource;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.HorizontalLayout;
@@ -45,7 +47,7 @@ import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Table.TableDragMode;
 
 @SuppressWarnings("serial")
-class RoleEditor extends CustomComponent implements ValueChangeListener,
+class RoleEditor extends CustomComponent implements ItemClickListener,
 		ClickListener {
 
 	private final Table rolesTab = new Table();
@@ -55,10 +57,14 @@ class RoleEditor extends CustomComponent implements ValueChangeListener,
 	private final BeanContainer<String, Role> roles = new BeanContainer<String, Role>(
 			Role.class);
 
-	RoleEditor(Collection<Role> roles) {
+	RoleEditor(V7CR v7) {
 		setCaption("Manage Roles");
+		setIcon(new ThemeResource("../runo/icons/16/users.png"));
+
 		this.roles.setBeanIdProperty("id");
-		this.roles.addAll(roles);
+		for (BSONBackedObject b : v7.find("roles")) {
+			roles.addBean(new Role(b));
+		}
 
 		rolesTab.setDragMode(TableDragMode.ROW);
 		rolesTab.setContainerDataSource(this.roles);
@@ -74,7 +80,7 @@ class RoleEditor extends CustomComponent implements ValueChangeListener,
 		rightSide.addComponent(memberSelect);
 
 		Button commitButton = new Button("update");
-		commitButton.addListener((ClickListener) this);
+		commitButton.addListener(this);
 		rightSide.addComponent(commitButton);
 
 		rightSide.setWidth("500");
@@ -86,9 +92,9 @@ class RoleEditor extends CustomComponent implements ValueChangeListener,
 		setCompositionRoot(hl);
 	}
 
-	public void valueChange(ValueChangeEvent event) {
+	public void itemClick(ItemClickEvent event) {
 
-		String roleId = (String) rolesTab.getValue();
+		String roleId = (String) event.getItemId();
 
 		Role r = Roles.load(((V7CR) getApplication()).getDBCollection("roles"),
 				roleId);
@@ -133,7 +139,6 @@ class RoleEditor extends CustomComponent implements ValueChangeListener,
 		}
 		o.put("member", members);
 		db.save(o);
-		valueChange(null);
 
 	}
 

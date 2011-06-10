@@ -17,13 +17,16 @@
 
 package v7cr.v7db;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
-import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
-public class SchemaDefinition extends BSONBackedObject {
+public class SchemaDefinition {
+
+	private final BSONBackedObject bson;
 
 	/**
 	 * name of the field that defines the possible data types for the object.
@@ -46,23 +49,49 @@ public class SchemaDefinition extends BSONBackedObject {
 	// to scope the type definitions
 	private final SchemaDefinition parent;
 
-	
 	public SchemaDefinition(BSONBackedObject bson) {
-		super(bson, null);
-		fields = getObjectField(FIELDS);
+		this.bson = bson;
+		fields = bson.getObjectField(FIELDS);
 		parent = null;
 	}
 
 	private SchemaDefinition(BSONBackedObject bson, SchemaDefinition parent) {
-		super(bson, null);
-		fields = getObjectField(FIELDS);
+		this.bson = bson;
+		fields = bson.getObjectField(FIELDS);
 		this.parent = parent;
 	}
 
 	SchemaDefinition(BasicBSONObject bson) {
-		super(bson, null);
-		fields = getObjectField(FIELDS);
-		parent = null;
+		this(BSONBackedObjectLoader.wrap(bson, null));
+	}
+
+	/**
+	 * returns an empty set if there are no field definitions
+	 * 
+	 * @return the names of fields for which definitions exist
+	 */
+	public Set<String> getFieldNames() {
+		if (fields == null)
+			return Collections.emptySet();
+		return fields.getFieldNames();
+	}
+
+	/**
+	 * The caption should be used in user interface elements (such as form input
+	 * labels or table headers) to name the field
+	 * 
+	 * @return the caption for the named field
+	 */
+	public LocalizedString getCaption(String fieldName) {
+		if (fields == null)
+			return null;
+		BSONBackedObject field = fields.getObjectField(fieldName);
+		if (field == null)
+			return null;
+		String n = field.getStringField("caption");
+		if (n == null)
+			return null;
+		return new LocalizedString(n);
 	}
 
 	public SchemaDefinition getFieldDefinition(String fieldName) {
@@ -81,7 +110,7 @@ public class SchemaDefinition extends BSONBackedObject {
 	 * @return an array of allowable data types, usually just one
 	 */
 	public String[] getDataTypes() {
-		String[] d = getStringFieldAsArray(DATA_TYPE);
+		String[] d = bson.getStringFieldAsArray(DATA_TYPE);
 		if (d == null) {
 			return new String[] { "object" };
 		}
@@ -93,22 +122,21 @@ public class SchemaDefinition extends BSONBackedObject {
 	 * implied "1"
 	 */
 	public Cardinality getCardinality() {
-		Cardinality c = Cardinality.getCardinality(getStringField(CARDINALITY));
+		Cardinality c = Cardinality.getCardinality(bson
+				.getStringField(CARDINALITY));
 		if (c == null)
 			return Cardinality.ONE;
 		return c;
 	}
 
 	SchemaDefinition withCardinalityN() {
-		BasicBSONObject clone = getBSONObject();
-		clone.put(CARDINALITY, Cardinality.N.toString());
-		return new SchemaDefinition(clone);
+		return new SchemaDefinition(bson.append(CARDINALITY, Cardinality.N
+				.toString()));
 	}
 
 	SchemaDefinition withCardinality1() {
-		BasicBSONObject clone = getBSONObject();
-		clone.put(CARDINALITY, Cardinality.ONE.toString());
-		return new SchemaDefinition(clone);
+		return new SchemaDefinition(bson.append(CARDINALITY, Cardinality.ONE
+				.toString()));
 	}
 
 	private Map<String, SchemaDefinition> localTypes;
@@ -126,7 +154,7 @@ public class SchemaDefinition extends BSONBackedObject {
 		SchemaDefinition d = localTypes.get(name);
 		if (d != null)
 			return d;
-		BSONBackedObject t = getObjectField("types");
+		BSONBackedObject t = bson.getObjectField("types");
 		if (t == null) {
 			if (parent != null)
 				return parent.getType(name);

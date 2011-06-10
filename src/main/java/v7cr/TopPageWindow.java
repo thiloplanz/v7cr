@@ -27,7 +27,6 @@ import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TabSheet;
-import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.Button.ClickEvent;
@@ -53,8 +52,15 @@ class TopPageWindow extends Window {
 
 		Map<String, Role> roles = app.getRoles();
 		if (roles.containsKey("admin")) {
-			main.addTab(new RoleEditor(roles.values()));
+			main.addTab(new RoleEditor(app));
 			main.addTab(new UserEditor());
+			main.addTab(new ProjectEditor(app));
+		}
+		for (String r : roles.keySet()) {
+			if (r.startsWith("project:")) {
+				String p = r.substring(8);
+				main.addTab(new ReviewList(p));
+			}
 		}
 		addComponent(vl);
 	}
