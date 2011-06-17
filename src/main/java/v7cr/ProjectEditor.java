@@ -18,8 +18,10 @@
 package v7cr;
 
 import v7cr.v7db.BSONBackedObject;
-import v7cr.vaadin.ItemFactory;
+import v7cr.vaadin.BSONFormFieldFactory;
+import v7cr.vaadin.BSONItem;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBObject;
 import com.vaadin.data.util.BeanContainer;
@@ -33,7 +35,6 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
-import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
 
@@ -75,7 +76,11 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		beans.setBeanIdProperty("id");
 
 		for (BSONBackedObject b : v7.find("projects")) {
-			beans.addBean(new Project(b));
+			try {
+				beans.addBean(new Project(b));
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			}
 		}
 
 		projTable.setContainerDataSource(beans);
@@ -91,16 +96,20 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		final Project p = new Project(V7CR.getInstance().load("projects",
 				projectId));
 
+		final DBObject b = p.getDBObject();
 		rightSide.removeAllComponents();
 		rightSide.addComponent(new Label(projectId));
 
 		final Form form = new Form();
+
+		form.setFormFieldFactory(new BSONFormFieldFactory(p
+				.getSchemaDefinition()));
+
+		form.setItemDataSource(new BSONItem(b));
+		form.setVisibleItemProperties(new String[] { "name", "repo",
+				"viewChanges" });
+
 		form.setWidth("100%");
-		form.addField("name", ItemFactory.getTextField(p, "name"));
-		form.addField("repo", ItemFactory.getTextField(p, "repo"));
-		form
-				.addField("viewChanges", ItemFactory.getTextField(p,
-						"viewChanges"));
 
 		rightSide.addComponent(form);
 
@@ -110,11 +119,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 
 			public void buttonClick(ClickEvent event) {
 
-				DBObject b = p.getDBObject();
-				b.put("name", form.getItemProperty("name").getValue());
-				b.put("repo", form.getItemProperty("repo").getValue());
-				b.put("viewChanges", form.getItemProperty("viewChanges")
-						.getValue());
+				form.commit();
 
 				V7CR v7 = V7CR.getInstance();
 				v7.save("projects", b);
@@ -128,16 +133,17 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 
 	public void buttonClick(ClickEvent event) {
 		rightSide.removeAllComponents();
+		final DBObject b = new BasicDBObject();
 		Project p = new Project(new BSONBackedObject());
 		final Form form = new Form();
 		form.setWidth("100%");
 
-		form.addField("id", new TextField("Project Id"));
-		form.addField("name", ItemFactory.getTextField(p, "name"));
-		form.addField("repo", ItemFactory.getTextField(p, "repo"));
-		form
-				.addField("viewChanges", ItemFactory.getTextField(p,
-						"viewChanges"));
+		form.setFormFieldFactory(new BSONFormFieldFactory(p
+				.getSchemaDefinition()));
+
+		form.setItemDataSource(new BSONItem(b, p.getSchemaDefinition()));
+		form.setVisibleItemProperties(new String[] { "_id", "name", "repo",
+				"viewChanges" });
 
 		rightSide.addComponent(form);
 
@@ -148,12 +154,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 
 			public void buttonClick(ClickEvent event) {
 
-				DBObject b = new BasicDBObjectBuilder().add("_id",
-						form.getItemProperty("id").getValue()).add("name",
-						form.getItemProperty("name").getValue()).add("repo",
-						form.getItemProperty("repo").getValue()).add(
-						"viewChanges",
-						form.getItemProperty("viewChanges").getValue()).get();
+				form.commit();
 
 				V7CR v7 = V7CR.getInstance();
 				v7.save("projects", b);

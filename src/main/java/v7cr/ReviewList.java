@@ -23,18 +23,24 @@ import org.bson.types.ObjectId;
 import v7cr.v7db.BSONBackedObjectLoader;
 
 import com.mongodb.BasicDBObject;
+import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.BeanContainer;
+import com.vaadin.data.util.filter.Compare;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.terminal.ThemeResource;
+import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.TabSheet.Tab;
 
 @SuppressWarnings("serial")
-class ReviewList extends CustomComponent implements ItemClickListener {
+class ReviewList extends CustomComponent implements ItemClickListener,
+		ValueChangeListener {
 
 	private final String projectName;
 
@@ -43,12 +49,24 @@ class ReviewList extends CustomComponent implements ItemClickListener {
 	ReviewList(String projectName) {
 		setIcon(new ThemeResource("../runo/icons/16/note.png"));
 
+		VerticalLayout vl = new VerticalLayout();
+		vl.setSizeFull();
+		ComboBox c = new ComboBox();
+		c.addItem("new");
+		c.addItem("review");
+		c.addItem("okay");
+		c.addItem("not good");
+		c.setImmediate(true);
+		c.addListener(this);
+		vl.addComponent(c);
+
 		this.projectName = projectName;
 		setCaption(projectName);
 		table = new Table();
-		setCompositionRoot(table);
+		vl.addComponent(table);
+		setCompositionRoot(vl);
 		reload();
-		table.addListener(this);
+		table.addListener((ItemClickListener) this);
 
 	}
 
@@ -71,7 +89,6 @@ class ReviewList extends CustomComponent implements ItemClickListener {
 
 			tabs.setSelectedTab(t.getComponent());
 		}
-		reload();
 	}
 
 	public void reload() {
@@ -91,6 +108,17 @@ class ReviewList extends CustomComponent implements ItemClickListener {
 		table.setVisibleColumns(new String[] { "status", "reviewee.name",
 				"registrationDate", "title", "SVNLogEntry.revision" });
 		table.setSortDisabled(true);
+
+	}
+
+	public void valueChange(ValueChangeEvent event) {
+		Object x = event.getProperty().getValue();
+
+		BeanContainer<?, ?> b = (BeanContainer<?, ?>) table
+				.getContainerDataSource();
+		b.removeAllContainerFilters();
+		if (x != null)
+			b.addContainerFilter(new Compare.Equal("status", x));
 
 	}
 }

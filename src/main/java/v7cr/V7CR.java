@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
+import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 
 import v7cr.v7db.AccountInfo;
@@ -36,6 +37,7 @@ import v7cr.v7db.SessionInfo;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.WriteResult;
 import com.vaadin.Application;
 import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 import com.vaadin.terminal.gwt.server.WebApplicationContext;
@@ -117,6 +119,17 @@ public class V7CR extends Application implements HttpServletRequestListener {
 
 	void save(String collection, DBObject object) {
 		getDBCollection(collection).save(object);
+	}
+
+	WriteResult update(String collection, Object id, DBObject updateSpec) {
+		return getDBCollection(collection).update(new BasicDBObject("_id", id),
+				updateSpec);
+	}
+
+	WriteResult update_pull(String collection, Object id, String fieldName,
+			BSONBackedObject objectToPull) {
+		return update(collection, id, new BasicDBObject("$pull",
+				new BasicBSONObject(fieldName, objectToPull.getBSONObject())));
 	}
 
 	@Override

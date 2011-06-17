@@ -8,7 +8,12 @@
     		"caption": "Web page URL to view changesets"
     	},
     	"name" : {
-    		"caption": "Project name"
+    		"caption": "Project name",
+    		"required": true
+    	},
+    	"_id" : {
+    		"caption": "Project Id",
+    		"required": true
     	}
     }
 	

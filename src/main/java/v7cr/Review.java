@@ -24,11 +24,13 @@ import static org.tmatesoft.svn.core.SVNRevisionProperty.LOG;
 import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNProperties;
+import org.tmatesoft.svn.core.internal.util.SVNDate;
 
 import v7cr.v7db.AccountInfo;
 import v7cr.v7db.BSONBackedObject;
@@ -81,7 +83,7 @@ public class Review extends BSONBackedObject {
 			return null;
 		SVNProperties props = new SVNProperties();
 		props.put(AUTHOR, b.getStringField(AUTHOR));
-		props.put(DATE, b.getDateField(DATE).toString());
+		props.put(DATE, SVNDate.formatDate(b.getDateField(DATE)));
 		props.put(LOG, b.getStringField(LOG));
 		SVNLogEntry svn = new SVNLogEntry(null, b.getLongField("rev"), props,
 				false);
@@ -109,8 +111,52 @@ public class Review extends BSONBackedObject {
 			String vote) {
 		BSONObject v = new BasicBSONObject("c", comment).append("d", date)
 				.append("v", vote).append("by", user.getBSONObject());
-		Review r = new Review(push("v", BSONBackedObjectLoader.wrap(v, null))
-				.append("s", "review"));
+		Review r = new Review(push("v", BSONBackedObjectLoader.wrap(v, null)))
+				.updateStatus();
 		return r;
+	}
+
+	public Review deleteVote(BSONBackedObject vote) {
+		BSONBackedObject[] votes = getObjectFieldAsArray("v");
+		votes = (BSONBackedObject[]) ArrayUtils.removeElement(votes, vote);
+		return new Review(unset("v").pushAll("v", votes)).updateStatus();
+	}
+
+	public Review updateVote(BSONBackedObject vote, String newMessage,
+			String rating) {
+		BSONBackedObject[] votes = getObjectFieldAsArray("v");
+		int idx = ArrayUtils.indexOf(votes, vote);
+		if (idx == -1)
+			return this;
+		votes[idx] = votes[idx].append("c", newMessage).append("v", rating);
+		return new Review(unset("v").pushAll("v", votes)).updateStatus();
+	}
+
+	private String calculateStatus() {
+		String status = "new";
+		BSONBackedObject[] votes = getObjectFieldAsArray("v");
+		if (votes == null || votes.length == 0)
+			return status;
+		status = "review";
+		int good = 0;
+		// TODO: very user gets to vote just once
+		for (BSONBackedObject v : votes) {
+			String vv = v.getStringField("v");
+			if ("-".equals(vv))
+				return "not good";
+			if ("+".equals(vv))
+				good++;
+		}
+		if (good >= 2)
+			return "okay";
+		return status;
+
+	}
+
+	Review updateStatus() {
+		String s = calculateStatus();
+		if (s.equals(getStatus()))
+			return this;
+		return new Review(append("s", s));
 	}
 }

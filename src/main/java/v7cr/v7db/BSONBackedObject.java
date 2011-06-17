@@ -160,6 +160,10 @@ public class BSONBackedObject {
 		return (Date) drillDown(field);
 	}
 
+	public Boolean getBooleanField(String field) {
+		return (Boolean) drillDown(field);
+	}
+
 	/**
 	 * returns the string representation of the BSON data that backs this
 	 * object.
@@ -288,6 +292,13 @@ public class BSONBackedObject {
 	}
 
 	private BSONBackedObject _append(String key, Object value) {
+		if (value == null)
+			return unset(key);
+		if (value instanceof List<?> && ((List<?>) value).isEmpty())
+			return unset(key);
+		if (value instanceof Object[] && ((Object[]) value).length == 0)
+			return unset(key);
+
 		BasicBSONObject[] path = createPath(bson, key);
 		if (path == null)
 			throw new UnsupportedOperationException(key
@@ -378,6 +389,54 @@ public class BSONBackedObject {
 		return _push(key, value.bson);
 	}
 
+	private BSONBackedObject _pushAll(String key, Object... values) {
+		List<Object> l = getList(key);
+		if (l == null) {
+			createPath(bson, key);
+			l = new ArrayList<Object>(values.length);
+		}
+		for (Object o : values)
+			l.add(o);
+		return _append(key, l);
+
+	}
+
+	/**
+	 * Adds the value to the end of the array. A new array will be created if
+	 * missing, and a previously single element will be turned into an array
+	 * (does not raise an error like MongoDB's $push operator would).
+	 * <p>
+	 * Since the object is immutable, all "push" methods return a modified copy
+	 * that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
+	 */
+
+	public BSONBackedObject pushAll(String key, String... values) {
+		return _pushAll(key, (Object[]) values);
+	}
+
+	/**
+	 * Adds the value to the end of the array. A new array will be created if
+	 * missing, and a previously single element will be turned into an array
+	 * (does not raise an error like MongoDB's $push operator would).
+	 * <p>
+	 * Since the object is immutable, all "push" methods return a modified copy
+	 * that contains the new value.
+	 * <p>
+	 * Auto-vivification: In case of a nested field, non-existing objects on the
+	 * path will be created if necessary.
+	 */
+
+	public BSONBackedObject pushAll(String key, BSONBackedObject... values) {
+		Object[] bsons = new BSONObject[values.length];
+		for (int i = 0; i < bsons.length; i++) {
+			bsons[i] = values[i].bson;
+		}
+		return _pushAll(key, bsons);
+	}
+
 	/**
 	 * Adds the value to the end of the array, but only if the entry is not
 	 * already there. A new array will be created if missing, and a previously
@@ -420,4 +479,75 @@ public class BSONBackedObject {
 		return _append(key, l);
 	}
 
+	/**
+	 * Removes the last element in an array. If the field is not an array,
+	 * deletes the field ("removes the only element"). If the array is left
+	 * empty, removes the field completely. If the field is missing, does
+	 * nothing.
+	 * <p>
+	 * Since the object is immutable, all "modifier" methods return the modified
+	 * copy.
+	 * 
+	 * @param keys
+	 *            you can specify multiple field names at once
+	 */
+	public BSONBackedObject popLast(String... keys) {
+		if (keys == null || keys.length == 0)
+			return this;
+
+		// TODO: this recursion and its temporary copies are very inefficient
+		// if we are supporting multiple keys, we might as well implement it
+		// in a tighter fashion
+
+		if (keys.length == 1) {
+			String k = keys[0];
+			List<Object> l = getList(k);
+			if (l.isEmpty())
+				return this;
+			l.remove(l.size() - 1);
+			return _append(k, l);
+		}
+
+		String[] head = Arrays.copyOf(keys, keys.length - 1);
+		return popLast(keys[head.length]).popLast(head);
+	}
+
+	/**
+	 * Deletes the gives fields (if they exist).
+	 * <p>
+	 * Since the object is immutable, all "modifier" methods return the modified
+	 * copy.
+	 * 
+	 * @param keys
+	 *            you can specify multiple field names at once
+	 */
+	public BSONBackedObject unset(String... keys) {
+		if (keys == null || keys.length == 0)
+			return this;
+
+		// TODO: this recursion and its temporary copies are very inefficient
+		// if we are supporting multiple keys, we might as well implement it
+		// in a tighter fashion
+
+		if (keys.length == 1) {
+			String field = keys[0];
+			Object[] d = drillDownToParent(bson, field);
+			if (d == null)
+				return this;
+
+			String localKey = (String) d[1];
+
+			BasicBSONObject[] path = createPath(bson, field);
+			if (path == null)
+				throw new UnsupportedOperationException(field
+						+ " is not a valid path");
+
+			path[1].removeField(localKey);
+			return new BSONBackedObject(path[0], schema);
+		}
+
+		String[] head = Arrays.copyOf(keys, keys.length - 1);
+		return unset(keys[head.length]).unset(head);
+
+	}
 }

@@ -44,6 +44,12 @@ public class SchemaDefinition {
 
 	public static final String CARDINALITY = "cardinality";
 
+	/**
+	 * name of the field that holds the required flag
+	 */
+
+	public static final String REQUIRED = "required";
+
 	private final BSONBackedObject fields;
 
 	// to scope the type definitions
@@ -139,6 +145,10 @@ public class SchemaDefinition {
 				.toString()));
 	}
 
+	public boolean isRequired() {
+		return Boolean.TRUE.equals(bson.getBooleanField("required"));
+	}
+
 	private Map<String, SchemaDefinition> localTypes;
 
 	/**
@@ -167,9 +177,13 @@ public class SchemaDefinition {
 
 			return null;
 		}
-		d = new SchemaDefinition(s);
+		d = new SchemaDefinition(s, this);
 		localTypes.put(name, d);
 		return d;
+	}
+
+	public static SchemaDefinition parse(String json) {
+		return new SchemaDefinition(BSONBackedObjectLoader.parse(json, null));
 	}
 
 }
