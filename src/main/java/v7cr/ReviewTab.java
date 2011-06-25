@@ -87,6 +87,13 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		if (s != null)
 			vl.addComponent(s);
 
+		final BSONBackedObject[] notes = r.getObjectFieldAsArray("notes");
+		if (notes != null) {
+			for (BSONBackedObject note : notes) {
+				vl.addComponent(getNotesPanel(note));
+			}
+		}
+
 		final BSONBackedObject[] votes = r.getObjectFieldAsArray("v");
 		if (votes != null) {
 			for (BSONBackedObject vote : votes) {
@@ -308,6 +315,22 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		grid.addComponent(link);
 		return p;
 
+	}
+
+	private Panel getNotesPanel(BSONBackedObject note) {
+		Panel p = new Panel(note.getStringField("t"));
+		p.setWidth("600px");
+		Label c = new Label(note.getStringField("c"));
+		p.addComponent(c);
+
+		String v = note.getStringField("v");
+		if ("+".equals(v)) {
+			c.setIcon(new ThemeResource("../runo/icons/16/ok.png"));
+		}
+		if ("-".equals(v)) {
+			c.setIcon(new ThemeResource("../runo/icons/16/attention.png"));
+		}
+		return p;
 	}
 
 	private Panel getSVNPanel(V7CR v7, SchemaDefinition sd, SVNLogEntry svn,
