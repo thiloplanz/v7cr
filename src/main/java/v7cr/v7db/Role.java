@@ -21,29 +21,44 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
+import v7cr.Review;
+
 public class Role extends BSONBackedObject {
 
+	private static final SchemaDefinition schema;
+
+	static {
+		try {
+			schema = new SchemaDefinition(BSONBackedObjectLoader.parse(IOUtils
+					.toString(Review.class.getResourceAsStream("role.json"),
+							"UTF-8"), null));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public Role(BSONBackedObject b) {
-		super(b, null);
+		super(b, schema);
 	}
 
 	Role(BSONObject b) {
-		super((BasicBSONObject) b, null);
+		super((BasicBSONObject) b, schema);
 	}
 
 	public String getId() {
 		return getStringField("_id");
 	}
 
-	public String getName() {
-		return getStringField("name");
+	public LocalizedString getName() {
+		return LocalizedString.get(this, "name");
 	}
 
 	public AccountInfo getAccountInfo() {
-		return new AccountInfo(getId(), getName());
+		return new AccountInfo(getId(), getName().toString());
 	}
 
 	public Map<String, AccountInfo> getMembers() {
@@ -61,6 +76,10 @@ public class Role extends BSONBackedObject {
 	public Role addMember(AccountInfo member) {
 		BSONBackedObject a = addToSet("member", member);
 		return new Role(a);
+	}
+
+	public static SchemaDefinition getRoleSchemaDefinition() {
+		return schema;
 	}
 
 }

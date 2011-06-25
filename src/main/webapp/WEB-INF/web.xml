@@ -38,6 +38,10 @@
             <param-value>v7cr.V7CR</param-value>
         </init-param>
     </servlet>
+    <servlet>
+    	<servlet-name>Test Login</servlet-name>
+    	<servlet-class>v7cr.TestLogin</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>Vaadin Application Servlet</servlet-name>
         <url-pattern>/v/*</url-pattern>
@@ -46,6 +50,10 @@
         <servlet-name>Vaadin Application Servlet</servlet-name>
         <url-pattern>/VAADIN/*</url-pattern>
     </servlet-mapping>
+   	<servlet-mapping>
+        <servlet-name>Test Login</servlet-name>
+        <url-pattern>/testLogin</url-pattern>
+    </servlet-mapping> 
    	<filter-mapping>
    		<filter-name>authcheck</filter-name>
    		<servlet-name>Vaadin Application Servlet</servlet-name>

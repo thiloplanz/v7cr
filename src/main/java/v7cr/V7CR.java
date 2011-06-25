@@ -19,7 +19,9 @@ package v7cr;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,8 +55,11 @@ public class V7CR extends Application implements HttpServletRequestListener {
 
 	private transient SessionInfo sessionInfo;
 
+	private transient ResourceBundle messages;
+
 	@Override
 	public void init() {
+		setLocale(Locale.JAPANESE);
 		setMainWindow(new TopPageWindow(this));
 	}
 
@@ -140,6 +145,18 @@ public class V7CR extends Application implements HttpServletRequestListener {
 
 		if (name.contains("-")) {
 			String[] pjt_rev = StringUtils.split(name, '-');
+			// project name could contain spaces
+			if (pjt_rev.length > 2) {
+				pjt_rev = new String[] {
+						StringUtils.join(pjt_rev, '-', 0, pjt_rev.length - 1),
+						pjt_rev[pjt_rev.length - 1] };
+			}
+			// check permission to access the project
+			if (!getRoles().containsKey("project:" + pjt_rev[0])) {
+				throw new SecurityException(
+						"permission denied to access project " + pjt_rev[0]);
+			}
+
 			Object reviewId = findId("reviews", new BasicDBObject("p",
 					pjt_rev[0]).append("svn.rev", Long.parseLong(pjt_rev[1])));
 			if (reviewId instanceof ObjectId) {
@@ -151,5 +168,11 @@ public class V7CR extends Application implements HttpServletRequestListener {
 		}
 
 		return null;
+	}
+
+	String getMessage(String key) {
+		if (messages == null)
+			messages = ResourceBundle.getBundle("v7cr.messages", getLocale());
+		return messages.getString(key);
 	}
 }

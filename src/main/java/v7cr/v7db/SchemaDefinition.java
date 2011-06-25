@@ -19,6 +19,7 @@ package v7cr.v7db;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,6 +50,12 @@ public class SchemaDefinition {
 	 */
 
 	public static final String REQUIRED = "required";
+
+	/**
+	 * name of the field that holds the possible values
+	 */
+
+	public static final String POSSIBLE_VALUES = "possibleValues";
 
 	private final BSONBackedObject fields;
 
@@ -88,21 +95,20 @@ public class SchemaDefinition {
 	 * 
 	 * @return the caption for the named field
 	 */
-	public LocalizedString getCaption(String fieldName) {
-		if (fields == null)
-			return null;
-		BSONBackedObject field = fields.getObjectField(fieldName);
-		if (field == null)
-			return null;
-		String n = field.getStringField("caption");
-		if (n == null)
-			return null;
-		return new LocalizedString(n);
+	public LocalizedString getFieldCaption(String fieldName) {
+		// TODO: properly support nested fields "a.b" => "a.fields.b"
+		return LocalizedString.get(fields, fieldName + ".caption");
+	}
+
+	public String getFieldCaption(String fieldName, Locale l) {
+		// TODO: properly support nested fields "a.b" => "a.fields.b"
+		return LocalizedString.get(fields, fieldName + ".caption", l);
 	}
 
 	public SchemaDefinition getFieldDefinition(String fieldName) {
 		if (fields == null)
 			return null;
+		// TODO: properly support nested fields "a.b" => "a.fields.b"
 		BSONBackedObject field = fields.getObjectField(fieldName);
 		if (field == null)
 			return null;
@@ -124,6 +130,63 @@ public class SchemaDefinition {
 	}
 
 	/**
+	 * Returns the possible values for this object. If unrestricted returns
+	 * null.
+	 * <p>
+	 * This returns just the actual possible values, not any other meta-data the
+	 * schema may contain. For the meta-data, use getPossibleValueMetaData
+	 */
+
+	public Object[] getPossibleValues() {
+		Object p = bson.getField(POSSIBLE_VALUES);
+		if (p == null)
+			return null;
+		if (!(p instanceof Object[])) {
+			p = new Object[] { p };
+		}
+		Object[] o = (Object[]) p;
+		int i = 0;
+		for (Object x : o) {
+			if (x instanceof BSONBackedObject) {
+				o[i] = ((BSONBackedObject) x).getField("_id");
+			}
+			i++;
+		}
+		return o;
+	}
+
+	/**
+	 * Returns the meta-data associated with a possible value defined for this
+	 * object. If values are unrestricted, returns null. If the value is not
+	 * possible, returns null. If there is no meta-data, returns `{ _id :
+	 * theValue } `.
+	 */
+
+	public BSONBackedObject getPossibleValueMetaData(Object value) {
+		Object p = bson.getField(POSSIBLE_VALUES);
+		if (p == null)
+			return null;
+		if (!(p instanceof Object[])) {
+			p = new Object[] { p };
+		}
+		Object[] o = (Object[]) p;
+		for (Object x : o) {
+			if (x instanceof BSONBackedObject) {
+
+				BSONBackedObject b = ((BSONBackedObject) x);
+				Object id = b.getField("_id");
+				if (value.equals(id))
+					return b;
+				continue;
+			}
+			if (value.equals(x))
+				return BSONBackedObjectLoader.wrap(
+						new BasicBSONObject("_id", x), null);
+		}
+		return null;
+	}
+
+	/**
 	 * Returns the cardinality for this object. If unspecified, returns the
 	 * implied "1"
 	 */
@@ -137,12 +200,12 @@ public class SchemaDefinition {
 
 	SchemaDefinition withCardinalityN() {
 		return new SchemaDefinition(bson.append(CARDINALITY, Cardinality.N
-				.toString()));
+				.toString()), parent);
 	}
 
 	SchemaDefinition withCardinality1() {
 		return new SchemaDefinition(bson.append(CARDINALITY, Cardinality.ONE
-				.toString()));
+				.toString()), parent);
 	}
 
 	public boolean isRequired() {

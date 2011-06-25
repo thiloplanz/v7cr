@@ -108,6 +108,16 @@
 					<strictCheck>true</strictCheck>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>native2ascii-maven-plugin</artifactId>
+				<version>1.0-alpha-1</version>
+						<!-- specific configurations -->
+						<configuration>
+							<encoding>UTF8</encoding>
+						</configuration>
+				
+				</plugin>
 		</plugins>
 	</build>
 

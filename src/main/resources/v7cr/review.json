@@ -2,12 +2,28 @@
     "description": "Schema for the Review document",
     "fields" : {
     	"t" : {
-    	 	"caption": "Title"
+    	 	"caption": { '_' : "Title", 'ja': '見出し' }
     	},
     	"s" : {
-    		"caption": "Status"
+    		"caption": { '_' : "Status", 'ja': 'ステータス' },
+    		"possibleValues": [
+    			{ '_id': 'new', 'caption': { '_' : 'new', 'ja' : '新規' }},
+    			{ '_id': 'review', 'caption': { '_' : 'review', 'ja' : 'レビュー中' }},
+    			{ '_id': 'okay', 'caption': { '_' : 'okay', 'ja' : 'OK' }},
+    			{ '_id': 'not good', 'caption': { '_' : 'not good', 'ja' : '否認' }}
+    		]
+    	},
+    	"reviewee": {
+    		"caption" : { '_': 'Reviewee', 'ja': 'レビューイー' }
+    	},
+    	'c' : {
+    		"caption" : { '_': 'Registration Date', 'ja': '登録日時' }
+    	},
+    	'svn' : {
+    		'fields' : { 'rev' : { 'caption' : { '_' : 'revision', 'ja': 'リビション' } } }
+    	},
+    	'p' : {
+    		'caption' : { '_' : 'Project' , 'ja' : 'プロジェクト' }
     	}
     }
-	
-
 }

@@ -17,7 +17,6 @@
 
 package v7cr.vaadin;
 
-import v7cr.v7db.LocalizedString;
 import v7cr.v7db.SchemaDefinition;
 
 import com.vaadin.data.Item;
@@ -37,13 +36,15 @@ public class BSONFormFieldFactory implements FormFieldFactory {
 	}
 
 	public Field createField(Item item, Object propertyId, Component uiContext) {
+
 		Property prop = item.getItemProperty(propertyId);
 
 		if (prop instanceof BSONProperty) {
-			LocalizedString caption = schema.getCaption((String) propertyId);
+			String caption = schema.getFieldCaption((String) propertyId,
+					uiContext.getLocale());
 			TextField text = new TextField(prop);
 			if (caption != null) {
-				text.setCaption(caption.toString());
+				text.setCaption(caption);
 			}
 			text.setNullRepresentation("");
 			SchemaDefinition fSchema = schema

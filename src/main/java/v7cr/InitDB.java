@@ -54,7 +54,7 @@ public class InitDB implements ServletContextListener {
 
 			if (getDBCollection(c, "roles").findOne() == null) {
 				String json = IOUtils.toString(getClass().getResourceAsStream(
-						"roles.json"));
+						"roles.json"), "UTF-8");
 				List<DBObject> l = (List<DBObject>) JSON.parse(json);
 				DBCollection roles = getDBCollection(c, "roles");
 				for (DBObject r : l) {

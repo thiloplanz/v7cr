@@ -67,4 +67,8 @@ public class BSONItem implements Item {
 		throw new UnsupportedOperationException();
 	}
 
+	public BSONObject getBSONObject() {
+		return bson;
+	}
+
 }

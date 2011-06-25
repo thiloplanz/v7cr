@@ -2,7 +2,7 @@
     "description": "Schema for the Project description",
     "fields" : {
     	"repo" : {
-    	 	"caption": "Source repository URL"
+    	 	"caption": { "_" : "Source repository URL", "ja" : 'ソース管理システムのURL' }
     	},
     	"viewChanges" : {
     		"caption": "Web page URL to view changesets"

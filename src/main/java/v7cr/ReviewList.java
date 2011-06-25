@@ -17,10 +17,16 @@
 
 package v7cr;
 
+import java.util.Locale;
+
 import org.bson.BSONObject;
 import org.bson.types.ObjectId;
 
+import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.BSONBackedObjectLoader;
+import v7cr.v7db.LocalizedString;
+import v7cr.v7db.SchemaDefinition;
+import v7cr.vaadin.PossibleValuesColumnGenerator;
 
 import com.mongodb.BasicDBObject;
 import com.vaadin.data.Property.ValueChangeEvent;
@@ -52,16 +58,22 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 		VerticalLayout vl = new VerticalLayout();
 		vl.setSizeFull();
 		ComboBox c = new ComboBox();
-		c.addItem("new");
-		c.addItem("review");
-		c.addItem("okay");
-		c.addItem("not good");
+		V7CR v7 = V7CR.getInstance();
+		Locale l = v7.getLocale();
+		SchemaDefinition sd = new Review("x", "x").getSchemaDefinition()
+				.getFieldDefinition("s");
+		for (Object x : sd.getPossibleValues()) {
+			c.addItem(x);
+			c.setItemCaption(x, LocalizedString.get(sd
+					.getPossibleValueMetaData(x), "caption", l));
+		}
 		c.setImmediate(true);
 		c.addListener(this);
 		vl.addComponent(c);
 
 		this.projectName = projectName;
-		setCaption(projectName);
+		BSONBackedObject p = v7.load("projects", projectName);
+		setCaption(p.getStringField("name"));
 		table = new Table();
 		vl.addComponent(table);
 		setCompositionRoot(vl);
@@ -92,6 +104,9 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 	}
 
 	public void reload() {
+		// DBCollectionContainer reviews = new DBCollectionContainer(V7CR
+		// .getInstance().getDBCollection("reviews"), "c", false);
+
 		BeanContainer<ObjectId, Review> reviews = new BeanContainer<ObjectId, Review>(
 				Review.class);
 		reviews.setBeanIdProperty("id");
@@ -101,12 +116,24 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 			Review r = new Review(BSONBackedObjectLoader.wrap(o, null));
 			reviews.addBean(r);
 		}
+
 		table.setContainerDataSource(reviews);
 		reviews.addNestedContainerProperty("reviewee.name");
 		reviews.addNestedContainerProperty("SVNLogEntry.revision");
 
+		SchemaDefinition sd = Review.getReviewSchemaDefinition();
+		Locale l = V7CR.getInstance().getLocale();
+		table.addGeneratedColumn("status", new PossibleValuesColumnGenerator(
+				sd, "s", l));
+
 		table.setVisibleColumns(new String[] { "status", "reviewee.name",
 				"registrationDate", "title", "SVNLogEntry.revision" });
+
+		table.setColumnHeaders(new String[] { sd.getFieldCaption("s", l),
+				sd.getFieldCaption("reviewee", l), sd.getFieldCaption("c", l),
+				sd.getFieldCaption("t", l),
+				sd.getFieldCaption("svn.fields.rev", l) });
+
 		table.setSortDisabled(true);
 
 	}

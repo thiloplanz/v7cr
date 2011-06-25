@@ -1,0 +1,7 @@
+{
+	'fields' : {
+		'_id': { 'caption': 'Id' },
+		'name' : { 'caption': { '_' : 'Role name', 'ja' : 'ロール名' } },
+		'member': { 'caption': { '_': 'Members', 'ja' : 'メンバー' } }
+	}
+}

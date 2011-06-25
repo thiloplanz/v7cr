@@ -47,7 +47,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 	private final Panel rightSide = new Panel();
 
 	ProjectEditor(V7CR v7) {
-		setCaption("Manage Projects");
+		setCaption(v7.getMessage("projectEditor.name"));
 		setIcon(new ThemeResource("../runo/icons/16/settings.png"));
 
 		reload(v7);
@@ -60,7 +60,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		hl.setWidth("100%");
 		VerticalLayout leftSide = new VerticalLayout();
 		leftSide.addComponent(projTable);
-		Button add = new Button("add new project");
+		Button add = new Button(v7.getMessage("button.newProject"));
 		add.addListener(this);
 		leftSide.addComponent(add);
 		hl.addComponent(leftSide);
@@ -93,14 +93,16 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		if (projectId == null)
 			return;
 
-		final Project p = new Project(V7CR.getInstance().load("projects",
-				projectId));
+		V7CR v7 = V7CR.getInstance();
+
+		final Project p = new Project(v7.load("projects", projectId));
 
 		final DBObject b = p.getDBObject();
 		rightSide.removeAllComponents();
 		rightSide.addComponent(new Label(projectId));
 
 		final Form form = new Form();
+		rightSide.addComponent(form);
 
 		form.setFormFieldFactory(new BSONFormFieldFactory(p
 				.getSchemaDefinition()));
@@ -111,9 +113,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 
 		form.setWidth("100%");
 
-		rightSide.addComponent(form);
-
-		Button submit = new Button("submit");
+		Button submit = new Button(v7.getMessage("button.submit"));
 		rightSide.addComponent(submit);
 		submit.addListener(new Button.ClickListener() {
 
@@ -137,6 +137,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		Project p = new Project(new BSONBackedObject());
 		final Form form = new Form();
 		form.setWidth("100%");
+		rightSide.addComponent(form);
 
 		form.setFormFieldFactory(new BSONFormFieldFactory(p
 				.getSchemaDefinition()));
@@ -144,10 +145,9 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 		form.setItemDataSource(new BSONItem(b, p.getSchemaDefinition()));
 		form.setVisibleItemProperties(new String[] { "_id", "name", "repo",
 				"viewChanges" });
+		V7CR v7 = V7CR.getInstance();
 
-		rightSide.addComponent(form);
-
-		Button submit = new Button("create");
+		Button submit = new Button(v7.getMessage("button.create"));
 		rightSide.addComponent(submit);
 
 		submit.addListener(new Button.ClickListener() {

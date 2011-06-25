@@ -1,7 +1,7 @@
 [
 {
 	"_id" : "admin",
-	"name" : "System Administrators"
+	"name" : { '_' : "System Administrators", 'ja' : 'システム管理者' }
 },
 {
 	"_id" : "connect",
@@ -10,7 +10,7 @@
 		  "n" : "System Administrators"
 		}
 	],
-	"name" : "Allowed to login"
+	"name" : { '_' : "Allowed to login", 'ja' : 'ログイン可能' }
 }
 ]
  

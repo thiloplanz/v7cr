@@ -55,20 +55,13 @@ public class AuthFilter implements Filter {
 			HttpServletRequest request = (HttpServletRequest) req;
 			HttpSession session = request.getSession(false);
 
+			// Authentication
 			if (session == null || session.getAttribute("v7cr.user") == null) {
 
 				Authentication auth = null;
 				if (session != null) {
 					auth = (Authentication) session
 							.getAttribute(OpenIDServlet.OPENID_AUTHENTICATION);
-				}
-
-				if (auth == null) {
-					if (session == null)
-						session = request.getSession();
-					auth = new Authentication();
-					auth.setFullname("Test User");
-					auth.setEmail("test@test.com");
 				}
 
 				if (auth == null) {
@@ -91,31 +84,48 @@ public class AuthFilter implements Filter {
 				AccountInfo account = new AccountInfo(auth.getEmail(), auth
 						.getFullname());
 
-				// check if this ID can log in
-				Map<String, Role> roles = Roles.loadRoles(InitDB
-						.getDBCollection(context, "roles"), account.getId());
-
-				if (!roles.containsKey("connect")) {
-					// check if an admin has already been registered
-					DBCollection ac = InitDB.getDBCollection(context, "roles");
-					Role admins = Roles.load(ac, "admin");
-					if (admins.getMembers().isEmpty()) {
-						admins = admins.addMember(account);
-						ac.save(new BasicDBObject(admins.getBSONObject()));
-						roles = Roles.loadRoles(InitDB.getDBCollection(context,
-								"roles"), account.getId());
-					}
-				}
-
-				if (!roles.containsKey("connect")) {
-					throw new SecurityException(account.getId()
-							+ " is not allowed to connect");
-				}
-				SessionInfo sessionInfo = new SessionInfo();
-				sessionInfo.accountInfo = account;
-				sessionInfo.roles = roles;
-				session.setAttribute("v7cr.sessionInfo", sessionInfo);
 				session.setAttribute("v7cr.user", account);
+
+			}
+
+			// Authorization
+			session = request.getSession(false);
+			if (session != null
+					&& session.getAttribute("v7cr.sessionInfo") == null) {
+				AccountInfo account = (AccountInfo) session
+						.getAttribute("v7cr.user");
+				if (account != null) {
+					// check if this ID can log in
+					Map<String, Role> roles = Roles
+							.loadRoles(
+									InitDB.getDBCollection(context, "roles"),
+									account.getId());
+
+					if (!roles.containsKey("connect")) {
+						// check if an admin has already been registered
+						DBCollection ac = InitDB.getDBCollection(context,
+								"roles");
+						Role admins = Roles.load(ac, "admin");
+						if (admins.getMembers().isEmpty()) {
+							admins = admins.addMember(account);
+							ac.save(new BasicDBObject(admins.getBSONObject()));
+							roles = Roles.loadRoles(InitDB.getDBCollection(
+									context, "roles"), account.getId());
+						}
+					}
+
+					if (!roles.containsKey("connect")) {
+						throw new SecurityException(account.getId()
+								+ " is not allowed to connect");
+					}
+					SessionInfo sessionInfo = new SessionInfo();
+					sessionInfo.accountInfo = account;
+					sessionInfo.roles = roles;
+					session.setAttribute("v7cr.sessionInfo", sessionInfo);
+				} else {
+					throw new SecurityException(
+							"Authentication information missing");
+				}
 			}
 		}
 		chain.doFilter(req, resp);

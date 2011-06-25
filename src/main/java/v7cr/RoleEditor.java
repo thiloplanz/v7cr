@@ -20,6 +20,7 @@ package v7cr;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 import org.bson.BSONObject;
 
@@ -27,6 +28,8 @@ import v7cr.v7db.AccountInfo;
 import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.Role;
 import v7cr.v7db.Roles;
+import v7cr.v7db.SchemaDefinition;
+import v7cr.vaadin.LocalizedStringColumnGenerator;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -44,7 +47,6 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.TwinColSelect;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.Table.TableDragMode;
 
 @SuppressWarnings("serial")
 class RoleEditor extends CustomComponent implements ItemClickListener,
@@ -58,28 +60,35 @@ class RoleEditor extends CustomComponent implements ItemClickListener,
 			Role.class);
 
 	RoleEditor(V7CR v7) {
-		setCaption("Manage Roles");
+		setCaption(v7.getMessage("roleEditor.name"));
 		setIcon(new ThemeResource("../runo/icons/16/users.png"));
 
 		this.roles.setBeanIdProperty("id");
 		for (BSONBackedObject b : v7.find("roles")) {
 			roles.addBean(new Role(b));
 		}
+		SchemaDefinition sd = Role.getRoleSchemaDefinition();
+		Locale l = v7.getLocale();
 
-		rolesTab.setDragMode(TableDragMode.ROW);
 		rolesTab.setContainerDataSource(this.roles);
+		rolesTab.addGeneratedColumn("name", new LocalizedStringColumnGenerator(
+				l));
+
 		rolesTab.setVisibleColumns(new Object[] { "id", "name" });
+		rolesTab.setColumnHeaders(new String[] { sd.getFieldCaption("_id", l),
+				sd.getFieldCaption("name", l) });
 		rolesTab.setSelectable(true);
 		rolesTab.setImmediate(true);
 		rolesTab.addListener(this);
 
 		Panel rightSide = new Panel();
 
-		memberSelect.setRightColumnCaption("Members");
-		memberSelect.setLeftColumnCaption("Non-members");
+		memberSelect.setRightColumnCaption(sd.getFieldCaption("member", l));
+		memberSelect.setLeftColumnCaption(v7
+				.getMessage("roleEditor.nonMembers"));
 		rightSide.addComponent(memberSelect);
 
-		Button commitButton = new Button("update");
+		Button commitButton = new Button(v7.getMessage("button.submit"));
 		commitButton.addListener(this);
 		rightSide.addComponent(commitButton);
 
@@ -113,6 +122,7 @@ class RoleEditor extends CustomComponent implements ItemClickListener,
 			members.addAll(rr.getMembers().values());
 			members.addBean(rr.getAccountInfo());
 		}
+		members.removeItem(roleId);
 		memberSelect.setContainerDataSource(members);
 		for (String rid : role.getBean().getMembers().keySet()) {
 			memberSelect.select(rid);

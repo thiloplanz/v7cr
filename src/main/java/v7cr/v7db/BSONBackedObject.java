@@ -118,7 +118,7 @@ public class BSONBackedObject {
 	}
 
 	public String getStringField(String field) {
-		return (String) drillDown(field);
+		return (String) getField(field);
 	}
 
 	/**
@@ -149,19 +149,71 @@ public class BSONBackedObject {
 	}
 
 	public ObjectId getObjectIdField(String field) {
-		return (ObjectId) drillDown(field);
+		return (ObjectId) getField(field);
 	}
 
 	public Long getLongField(String field) {
-		return (Long) drillDown(field);
+		return (Long) getField(field);
 	}
 
 	public Date getDateField(String field) {
-		return (Date) drillDown(field);
+		return (Date) getField(field);
 	}
 
 	public Boolean getBooleanField(String field) {
-		return (Boolean) drillDown(field);
+		return (Boolean) getField(field);
+	}
+
+	/**
+	 * returns the field value, which can be any type of object. Use this only,
+	 * if you do not know the type in advance, otherwise the typed methods (such
+	 * as getStringField) are preferred.
+	 * 
+	 * <p>
+	 * If the field has multiple values, an array is returned.
+	 * 
+	 * <p>
+	 * Always returns immutable objects or copies of the original data, so any
+	 * changes made to it later do not affect this object.
+	 * 
+	 */
+	public Object getField(String field) {
+		Object o = drillDown(field);
+		if (o == null)
+			return null;
+		if (o instanceof String || o instanceof Boolean || o instanceof Long
+				|| o instanceof ObjectId)
+			return o;
+		// Date is mutable...
+		if (o instanceof Date)
+			return ((Date) o).clone();
+
+		if (o instanceof BasicBSONObject) {
+			return new BSONBackedObject((BasicBSONObject) o, null);
+		}
+
+		if (o instanceof List<?>) {
+			o = ((List<?>) o).toArray();
+		}
+		if (o instanceof Object[]) {
+			Object[] a = (Object[]) o;
+			int i = 0;
+			for (Object m : a) {
+				if (m instanceof Date) {
+					a[i] = ((Date) m).clone();
+				} else if (m instanceof BasicBSONObject) {
+					a[i] = new BSONBackedObject((BasicBSONObject) m, null);
+				} else if (m instanceof String || m instanceof Boolean
+						|| m instanceof Long || m instanceof ObjectId) {
+					// immutable, no need to do anything
+				} else
+					throw new RuntimeException("unsupported field type " + m);
+
+				i++;
+			}
+			return a;
+		}
+		throw new RuntimeException("unsupported field type " + o);
 	}
 
 	/**

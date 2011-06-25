@@ -36,7 +36,7 @@ import com.vaadin.ui.Button.ClickListener;
 class TopPageWindow extends Window {
 
 	TopPageWindow(V7CR app) {
-		super("v7 Code Review");
+		super(app.getMessage("app.name"));
 		setName("top");
 		initUI(app);
 
@@ -53,7 +53,7 @@ class TopPageWindow extends Window {
 		Map<String, Role> roles = app.getRoles();
 		if (roles.containsKey("admin")) {
 			main.addTab(new RoleEditor(app));
-			main.addTab(new UserEditor());
+			main.addTab(new UserEditor(app));
 			main.addTab(new ProjectEditor(app));
 		}
 		for (String r : roles.keySet()) {
@@ -66,10 +66,10 @@ class TopPageWindow extends Window {
 	}
 
 	private HorizontalLayout createToolbar(V7CR app) {
-		Label logo = new Label("v7 Code Review");
+		Label logo = new Label(getCaption());
 		Label username = new Label(app.getSessionUser().getName() + " "
 				+ app.getSessionUser().getId());
-		Button logout = new Button("Logout");
+		Button logout = new Button(app.getMessage("button.logout"));
 		logout.addListener(new ClickListener() {
 			public void buttonClick(ClickEvent event) {
 				Application a = V7CR.getInstance();

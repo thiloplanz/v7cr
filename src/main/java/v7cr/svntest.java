@@ -56,7 +56,7 @@ public class svntest {
 		DB db = new Mongo().getDB("v7cr");
 
 		final Project project = new Project(BSONBackedObjectLoader.wrap(db
-				.getCollection("projects").findOne("bitcoinj"), null));
+				.getCollection("projects").findOne("sanction-route"), null));
 
 		final DBCollection reviews = db.getCollection("reviews");
 
@@ -75,11 +75,13 @@ public class svntest {
 
 		SVNURL url = SVNURL.parseURIDecoded(project.getRepositoryUrl());
 		SVNClientManager svn = SVNClientManager.newInstance();
+		// svn.setAuthenticationManager(new
+		// BasicAuthenticationManager("username","password"));
 
 		SVNLogClient log = svn.getLogClient();
 
 		log.doLog(url, null, SVNRevision.HEAD, SVNRevision
-				.create(latestRev + 1), SVNRevision.HEAD, true, true, 10,
+				.create(latestRev + 1), SVNRevision.HEAD, true, true, 100,
 				new ISVNLogEntryHandler() {
 
 					public void handleLogEntry(SVNLogEntry logEntry)

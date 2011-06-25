@@ -30,9 +30,9 @@ public class Project extends BSONBackedObject {
 
 	static {
 		try {
-			schema = new SchemaDefinition(BSONBackedObjectLoader.parse(
-					IOUtils.toString(Review.class
-							.getResourceAsStream("project.json")), null));
+			schema = new SchemaDefinition(BSONBackedObjectLoader.parse(IOUtils
+					.toString(Review.class.getResourceAsStream("project.json"),
+							"UTF-8"), null));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

@@ -20,6 +20,7 @@ package v7cr;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DurationFormatUtils;
@@ -27,6 +28,8 @@ import org.bson.types.ObjectId;
 import org.tmatesoft.svn.core.SVNLogEntry;
 
 import v7cr.v7db.BSONBackedObject;
+import v7cr.v7db.LocalizedString;
+import v7cr.v7db.SchemaDefinition;
 
 import com.vaadin.terminal.ExternalResource;
 import com.vaadin.terminal.ThemeResource;
@@ -64,11 +67,9 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 	}
 
 	private void reload() {
-
-		final Review r = new Review(V7CR.getInstance()
-				.load("reviews", reviewId));
-		Project p = new Project(V7CR.getInstance().load("projects",
-				r.getProjectName()));
+		V7CR v7 = V7CR.getInstance();
+		final Review r = new Review(v7.load("reviews", reviewId));
+		Project p = new Project(v7.load("projects", r.getProjectName()));
 		SVNLogEntry svn = r.getSVNLogEntry();
 		String url;
 		if (svn != null) {
@@ -81,8 +82,8 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		VerticalLayout vl = new VerticalLayout();
 		vl.setSizeFull();
 
-		vl.addComponent(getBasicInfo(r, p, url));
-		Panel s = getSVNPanel(svn, p);
+		vl.addComponent(getBasicInfo(v7, r, p, url));
+		Panel s = getSVNPanel(v7, r.getSchemaDefinition(), svn, p);
 		if (s != null)
 			vl.addComponent(s);
 
@@ -110,7 +111,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 			vl.addComponent(commentGrid);
 
-			Button submitButton = new Button("submit");
+			Button submitButton = new Button(v7.getMessage("button.submit"));
 			submitButton.addListener(this);
 			vl.addComponent(submitButton);
 		}
@@ -177,24 +178,28 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 					- System.currentTimeMillis();
 			if (timeLeft > 0) {
 
-				p.addComponent(new Button("edit", new Button.ClickListener() {
+				V7CR v7 = V7CR.getInstance();
 
-					public void buttonClick(ClickEvent event) {
-						makeEditable();
-					}
-				}
+				p.addComponent(new Button(v7.getMessage("button.edit"),
+						new Button.ClickListener() {
+
+							public void buttonClick(ClickEvent event) {
+								makeEditable();
+							}
+						}
 
 				));
-				p.addComponent(new Button("delete", new Button.ClickListener() {
+				p.addComponent(new Button(v7.getMessage("button.delete"),
+						new Button.ClickListener() {
 
-					public void buttonClick(ClickEvent event) {
-						V7CR v7cr = V7CR.getInstance();
-						Review r = new Review(v7cr.load("reviews", reviewId))
-								.deleteVote(data);
-						v7cr.save("reviews", r);
-						reload();
-					}
-				}));
+							public void buttonClick(ClickEvent event) {
+								V7CR v7cr = V7CR.getInstance();
+								Review r = new Review(v7cr.load("reviews",
+										reviewId)).deleteVote(data);
+								v7cr.save("reviews", r);
+								reload();
+							}
+						}));
 				p.addComponent(new Label(DurationFormatUtils
 						.formatDurationWords(timeLeft, true, true)
 						+ " left to edit"));
@@ -208,6 +213,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 			grid.setSizeFull();
 			p.setContent(grid);
 			grid.setSpacing(true);
+			V7CR v7 = V7CR.getInstance();
 
 			final Date created = data.getDateField("d");
 
@@ -225,67 +231,77 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 			voteOptions.addItem("-");
 			voteOptions.setValue("0");
 			grid.addComponent(voteOptions);
-			p.addComponent(new Button("submit", new Button.ClickListener() {
+			p.addComponent(new Button(v7.getMessage("button.submit"),
+					new Button.ClickListener() {
 
-				public void buttonClick(ClickEvent event) {
-					V7CR v7cr = V7CR.getInstance();
-					Review r = new Review(v7cr.load("reviews", reviewId))
-							.updateVote(data, textArea.getValue().toString(),
+						public void buttonClick(ClickEvent event) {
+							V7CR v7cr = V7CR.getInstance();
+							Review r = new Review(v7cr
+									.load("reviews", reviewId)).updateVote(
+									data, textArea.getValue().toString(),
 									voteOptions.getValue().toString());
-					v7cr.save("reviews", r);
-					reload();
+							v7cr.save("reviews", r);
+							reload();
 
-					//					
-					// V7CR.getInstance().getDBCollection("reviews").update(
-					// new BasicDBObject("_id", reviewId).append("v.d",
-					// created),
-					// new BasicDBObject("$set", new BasicDBObject(
-					// "v.$.c", textArea.getValue()).append(
-					// "v.$.v", voteOptions.getValue())));
-				}
-			}
+							//					
+							// V7CR.getInstance().getDBCollection("reviews").update(
+							// new BasicDBObject("_id", reviewId).append("v.d",
+							// created),
+							// new BasicDBObject("$set", new BasicDBObject(
+							// "v.$.c", textArea.getValue()).append(
+							// "v.$.v", voteOptions.getValue())));
+						}
+					}
 
 			));
-			p.addComponent(new Button("cancel", new Button.ClickListener() {
+			p.addComponent(new Button(v7.getMessage("button.cancel"),
+					new Button.ClickListener() {
 
-				public void buttonClick(ClickEvent event) {
-					makeNotEditable();
-				}
-			}));
-			p.addComponent(new Button("delete", new Button.ClickListener() {
+						public void buttonClick(ClickEvent event) {
+							makeNotEditable();
+						}
+					}));
+			p.addComponent(new Button(v7.getMessage("button.delete"),
+					new Button.ClickListener() {
 
-				public void buttonClick(ClickEvent event) {
-					V7CR v7cr = V7CR.getInstance();
-					Review r = new Review(v7cr.load("reviews", reviewId))
-							.deleteVote(data);
-					v7cr.save("reviews", r);
-					reload();
+						public void buttonClick(ClickEvent event) {
+							V7CR v7cr = V7CR.getInstance();
+							Review r = new Review(v7cr
+									.load("reviews", reviewId))
+									.deleteVote(data);
+							v7cr.save("reviews", r);
+							reload();
 
-				}
-			}));
+						}
+					}));
 
 		}
 	}
 
-	private Panel getBasicInfo(Review r, Project proj, String linkUrl) {
-		Panel p = new Panel("Review");
+	private Panel getBasicInfo(V7CR v7, Review r, Project proj, String linkUrl) {
+
+		Panel p = new Panel(v7.getMessage("reviewTab.review"));
 		p.setWidth("600px");
 		GridLayout grid = new GridLayout(3, 4);
 		grid.setSizeFull();
 		p.setContent(grid);
 		grid.setSpacing(true);
-		grid.addComponent(new Label("Status:"), 0, 0, 1, 0);
-		p.addComponent(new Label("<b>" + r.getStatus() + "</b>",
-				Label.CONTENT_XHTML));
-		p.addComponent(new Label("Project:"));
+		Locale l = v7.getLocale();
+		SchemaDefinition sd = r.getSchemaDefinition();
+		grid.addComponent(new Label(sd.getFieldCaption("s", l)), 0, 0, 1, 0);
+		p.addComponent(new Label("<b>"
+				+ LocalizedString.get(sd.getFieldDefinition("s")
+						.getPossibleValueMetaData(r.getStatus()), "caption", l)
+				+ "</b>", Label.CONTENT_XHTML));
+		p.addComponent(new Label(sd.getFieldCaption("p", l)));
 		p.addComponent(new Label("[" + proj.getId() + "]"));
 		grid.addComponent(new Label(proj.getName()));
-		p.addComponent(new Label("Reviewee:"));
+		p.addComponent(new Label(sd.getFieldCaption("reviewee", l)));
 		p.addComponent(new Label(r.getReviewee().getId()));
 		grid.addComponent(new Label(r.getReviewee().getName()));
-		p.addComponent(new Label("Title:"));
+		p.addComponent(new Label(sd.getFieldCaption("t", l)));
 		grid.addComponent(new Label(r.getTitle()), 1, 3, 2, 3);
-		p.addComponent(new Label("Link:"));
+		p.addComponent(new Label(v7.getMessage("reviewTab.directLink")));
 		Link link = new Link(linkUrl, new ExternalResource(linkUrl));
 		link.setTargetName("_blank");
 		link.setIcon(new ThemeResource("../runo/icons/16/arrow-right.png"));
@@ -294,22 +310,25 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 	}
 
-	private Panel getSVNPanel(SVNLogEntry svn, Project proj) {
+	private Panel getSVNPanel(V7CR v7, SchemaDefinition sd, SVNLogEntry svn,
+			Project proj) {
 		if (svn == null)
 			return null;
-		Panel p = new Panel("Subversion");
+		Locale l = v7.getLocale();
+		Panel p = new Panel(v7.getMessage("reviewTab.subversion"));
 		p.setWidth("600px");
 		GridLayout grid = new GridLayout(4, 4);
 		grid.setSizeFull();
 		p.setContent(grid);
 		grid.setSpacing(true);
-		p.addComponent(new Label("Revision:"));
+		p.addComponent(new Label(sd.getFieldCaption("svn.fields.rev", l)));
 		p.addComponent(new Label("" + svn.getRevision()));
 		p.addComponent(new Label(DateFormat.getDateTimeInstance().format(
 				svn.getDate())));
 		p.addComponent(new Label(svn.getAuthor()));
-		Link link = new Link("view changes", new ExternalResource(proj
-				.getChangesetViewUrl(svn.getRevision())));
+		Link link = new Link(v7.getMessage("reviewTab.viewChanges"),
+				new ExternalResource(proj
+						.getChangesetViewUrl(svn.getRevision())));
 		link.setTargetName("_blank");
 		link.setIcon(new ThemeResource("../runo/icons/16/arrow-right.png"));
 		p.addComponent(link);

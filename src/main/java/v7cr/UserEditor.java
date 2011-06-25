@@ -31,28 +31,32 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 
+@SuppressWarnings("serial")
 class UserEditor extends CustomComponent implements ClickListener {
 
 	private final Form userForm = new Form();
 
-	UserEditor() {
-		setCaption("Register Users");
+	UserEditor(V7CR v7) {
+		setCaption(v7.getMessage("userEditor.name"));
 		setIcon(new ThemeResource("../runo/icons/16/user.png"));
 		HorizontalLayout hl = new HorizontalLayout();
 		setCompositionRoot(hl);
 
-		userForm.setCaption("Register New User");
-		userForm
-				.setDescription("You can add a new user by entering an email address. Upon registration, she will be given the Connect role automatically.");
-		TextField id = new TextField("Email address");
+		userForm.setCaption(v7.getMessage("userEditor.form.caption"));
+		userForm.setDescription(v7.getMessage("userEditor.form.description"));
+		TextField id = new TextField(v7.getMessage("userEditor.form.email"));
 		id.setRequired(true);
-		id.addValidator(new EmailValidator("invalid email address"));
+		id
+				.addValidator(new EmailValidator(v7
+						.getMessage("error.invalidEmail")));
 		userForm.addField("id", id);
-		TextField name = new TextField("Display name");
+		TextField name = new TextField(v7
+				.getMessage("userEditor.form.displayName"));
 		name.setRequired(true);
 		userForm.addField("name", name);
 
-		userForm.getLayout().addComponent(new Button("Register", this));
+		userForm.getLayout().addComponent(
+				new Button(v7.getMessage("button.create")));
 		hl.addComponent(userForm);
 
 	}
@@ -68,7 +72,6 @@ class UserEditor extends CustomComponent implements ClickListener {
 			Role connect = new Role(v7cr.load("roles", "connect"));
 			connect = connect.addMember(ac);
 			v7cr.save("roles", connect);
-			System.out.println(connect);
 		} catch (InvalidValueException e) {
 		}
 	}

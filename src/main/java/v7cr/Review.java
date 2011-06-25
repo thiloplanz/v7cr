@@ -44,8 +44,8 @@ public class Review extends BSONBackedObject {
 	static {
 		try {
 			schema = new SchemaDefinition(BSONBackedObjectLoader.parse(IOUtils
-					.toString(Review.class.getResourceAsStream("review.json")),
-					null));
+					.toString(Review.class.getResourceAsStream("review.json"),
+							"UTF-8"), null));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -158,5 +158,9 @@ public class Review extends BSONBackedObject {
 		if (s.equals(getStatus()))
 			return this;
 		return new Review(append("s", s));
+	}
+
+	public static SchemaDefinition getReviewSchemaDefinition() {
+		return schema;
 	}
 }
