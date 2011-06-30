@@ -54,6 +54,8 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 	final ObjectId reviewId;
 
+	private Review r;
+
 	private TextArea newComment;
 
 	private OptionGroup voteOptions;
@@ -68,7 +70,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 	private void reload() {
 		V7CR v7 = V7CR.getInstance();
-		final Review r = new Review(v7.load("reviews", reviewId));
+		r = new Review(v7.load("reviews", reviewId));
 		Project p = new Project(v7.load("projects", r.getProjectName()));
 		SVNLogEntry svn = r.getSVNLogEntry();
 		String url;
@@ -201,9 +203,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 							public void buttonClick(ClickEvent event) {
 								V7CR v7cr = V7CR.getInstance();
-								Review r = new Review(v7cr.load("reviews",
-										reviewId)).deleteVote(data);
-								v7cr.save("reviews", r);
+								v7cr.update("reviews", r.deleteVote(data));
 								reload();
 							}
 						}));
@@ -243,11 +243,9 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 						public void buttonClick(ClickEvent event) {
 							V7CR v7cr = V7CR.getInstance();
-							Review r = new Review(v7cr
-									.load("reviews", reviewId)).updateVote(
-									data, textArea.getValue().toString(),
-									voteOptions.getValue().toString());
-							v7cr.save("reviews", r);
+							v7cr.update("reviews", r.updateVote(data, textArea
+									.getValue().toString(), voteOptions
+									.getValue().toString()));
 							reload();
 
 							//					
@@ -273,10 +271,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 						public void buttonClick(ClickEvent event) {
 							V7CR v7cr = V7CR.getInstance();
-							Review r = new Review(v7cr
-									.load("reviews", reviewId))
-									.deleteVote(data);
-							v7cr.save("reviews", r);
+							v7cr.update("reviews", r.deleteVote(data));
 							reload();
 
 						}
@@ -375,11 +370,9 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		}
 
 		V7CR v7cr = V7CR.getInstance();
-		Review r = new Review(v7cr.load("reviews", reviewId)).addVote(v7cr
-				.getSessionUser(), new Date(), comment, vote);
-		v7cr.save("reviews", r);
+		v7cr.update("reviews", r.addVote(v7cr.getSessionUser(), new Date(),
+				comment, vote));
 
 		reload();
-
 	}
 }

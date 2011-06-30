@@ -71,7 +71,7 @@ class UserEditor extends CustomComponent implements ClickListener {
 			V7CR v7cr = V7CR.getInstance();
 			Role connect = new Role(v7cr.load("roles", "connect"));
 			connect = connect.addMember(ac);
-			v7cr.save("roles", connect);
+			v7cr.update("roles", connect);
 		} catch (InvalidValueException e) {
 		}
 	}

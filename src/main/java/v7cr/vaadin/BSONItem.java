@@ -71,4 +71,9 @@ public class BSONItem implements Item {
 		return bson;
 	}
 
+	@Override
+	public String toString() {
+		return bson.toString();
+	}
+
 }

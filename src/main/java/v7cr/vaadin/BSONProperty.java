@@ -17,6 +17,8 @@
 
 package v7cr.vaadin;
 
+import java.util.Map;
+
 import org.bson.BSONObject;
 
 import com.vaadin.data.util.AbstractProperty;
@@ -37,12 +39,42 @@ public class BSONProperty extends AbstractProperty {
 		return getValue().getClass();
 	}
 
+	// for nested fields
+	// returns { parentObject, localFieldName }
+
+	private static Object[] drillDownToParent(Map<?, ?> data, String field) {
+		if (field == null) {
+			return null;
+		}
+		int idx = field.indexOf('.');
+		if (idx == -1) {
+			return new Object[] { data, field };
+		}
+		String head = field.substring(0, idx);
+		String tail = field.substring(idx + 1);
+		Object o = data.get(head);
+		if (o instanceof Map<?, ?>) {
+			return drillDownToParent((Map<?, ?>) o, tail);
+		}
+		return null;
+	}
+
+	// for nested fields
+	private Object drillDown(String field) {
+		Object[] d = drillDownToParent((Map<?, ?>) bson, field);
+		if (d == null)
+			return null;
+		return ((Map<?, ?>) d[0]).get(d[1]);
+	}
+
 	public Object getValue() {
-		return bson.get(fieldName);
+		return drillDown(fieldName);
 	}
 
 	public void setValue(Object newValue) throws ReadOnlyException,
 			ConversionException {
+		if (fieldName.contains("."))
+			throw new ReadOnlyException(fieldName);
 		bson.put(fieldName, newValue);
 	}
 

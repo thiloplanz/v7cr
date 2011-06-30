@@ -164,6 +164,10 @@ public class BSONBackedObject {
 		return (Boolean) getField(field);
 	}
 
+	public Integer getIntegerField(String field) {
+		return (Integer) getField(field);
+	}
+
 	/**
 	 * returns the field value, which can be any type of object. Use this only,
 	 * if you do not know the type in advance, otherwise the typed methods (such
@@ -182,7 +186,7 @@ public class BSONBackedObject {
 		if (o == null)
 			return null;
 		if (o instanceof String || o instanceof Boolean || o instanceof Long
-				|| o instanceof ObjectId)
+				|| o instanceof ObjectId || o instanceof Integer)
 			return o;
 		// Date is mutable...
 		if (o instanceof Date)
@@ -204,16 +208,20 @@ public class BSONBackedObject {
 				} else if (m instanceof BasicBSONObject) {
 					a[i] = new BSONBackedObject((BasicBSONObject) m, null);
 				} else if (m instanceof String || m instanceof Boolean
-						|| m instanceof Long || m instanceof ObjectId) {
+						|| m instanceof Long || m instanceof ObjectId
+						|| m instanceof Integer) {
 					// immutable, no need to do anything
 				} else
-					throw new RuntimeException("unsupported field type " + m);
+					throw new RuntimeException("unsupported field type "
+							+ o.getClass().getName() + " for '" + field
+							+ "' : " + o);
 
 				i++;
 			}
 			return a;
 		}
-		throw new RuntimeException("unsupported field type " + o);
+		throw new RuntimeException("unsupported field type "
+				+ o.getClass().getName() + " for '" + field + "' : " + o);
 	}
 
 	/**
@@ -602,4 +610,11 @@ public class BSONBackedObject {
 		return unset(keys[head.length]).unset(head);
 
 	}
+
+	private final static BSONBackedObject BUILDER_START = new BSONBackedObject();
+
+	public static final BSONBackedObject start() {
+		return BUILDER_START;
+	}
+
 }

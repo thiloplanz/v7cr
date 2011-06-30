@@ -33,6 +33,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import v7cr.v7db.AccountInfo;
 import v7cr.v7db.BSONBackedObjectLoader;
+import v7cr.v7db.Versioning;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -102,7 +103,7 @@ public class svntest {
 						b.put("svn", svn);
 						b.put("c", logEntry.getDate());
 						System.out.println(b);
-						reviews.insert(b);
+						Versioning.insert(reviews, b);
 					}
 				});
 

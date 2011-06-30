@@ -24,6 +24,8 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 
+import v7cr.v7db.Versioning;
+
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -45,7 +47,7 @@ public class notestest {
 						new Date()).append("x", findbugs);
 		r.put("notes", new Object[] { notes });
 		System.out.println(r);
-		review.save(r);
+		Versioning.update(review, Versioning.getVersion(r), r);
 	}
 
 }

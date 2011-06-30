@@ -32,10 +32,13 @@ import com.vaadin.ui.Table.ColumnGenerator;
 @SuppressWarnings("serial")
 public class PossibleValuesColumnGenerator implements ColumnGenerator {
 
+	private final String field;
+
 	private final Map<Object, String> names = new HashMap<Object, String>();
 
 	public PossibleValuesColumnGenerator(SchemaDefinition d, String field,
 			Locale l) {
+		this.field = field;
 		SchemaDefinition fieldSchema = d.getFieldDefinition(field);
 		if (fieldSchema != null) {
 			Object[] pv = fieldSchema.getPossibleValues();
@@ -52,8 +55,7 @@ public class PossibleValuesColumnGenerator implements ColumnGenerator {
 	}
 
 	public Component generateCell(Table source, Object itemId, Object columnId) {
-		Object value = source.getItem(itemId).getItemProperty(columnId)
-				.getValue();
+		Object value = source.getItem(itemId).getItemProperty(field).getValue();
 		String name = names.get(value);
 		if (names != null)
 			return new Label(name);

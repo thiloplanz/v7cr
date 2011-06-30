@@ -18,6 +18,7 @@
 package v7cr;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,7 +28,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 
 import v7cr.v7db.AccountInfo;
@@ -35,15 +35,23 @@ import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.BSONBackedObjectLoader;
 import v7cr.v7db.Role;
 import v7cr.v7db.SessionInfo;
+import v7cr.v7db.Versioning;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
 import com.vaadin.Application;
+import com.vaadin.terminal.ParameterHandler;
+import com.vaadin.terminal.Terminal;
+import com.vaadin.terminal.URIHandler;
+import com.vaadin.terminal.VariableOwner;
+import com.vaadin.terminal.gwt.server.ChangeVariablesErrorEvent;
 import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 import com.vaadin.terminal.gwt.server.WebApplicationContext;
+import com.vaadin.ui.AbstractComponent;
 import com.vaadin.ui.Window;
+import com.vaadin.ui.Window.Notification;
 
 /**
  * The Application's "main" class
@@ -117,24 +125,23 @@ public class V7CR extends Application implements HttpServletRequestListener {
 		return result;
 	}
 
-	void save(String collection, BSONBackedObject object) {
-		getDBCollection(collection).save(
-				new BasicDBObject(object.getBSONObject()));
+	WriteResult update(String collection, BSONBackedObject object) {
+		return Versioning.update(getDBCollection(collection), Versioning
+				.getVersion(object), object.getDBObject());
 	}
 
-	void save(String collection, DBObject object) {
-		getDBCollection(collection).save(object);
+	WriteResult update(String collection, DBObject object) {
+		return Versioning.update(getDBCollection(collection), Versioning
+				.getVersion(object), object);
 	}
 
-	WriteResult update(String collection, Object id, DBObject updateSpec) {
-		return getDBCollection(collection).update(new BasicDBObject("_id", id),
-				updateSpec);
+	WriteResult insert(String collection, BSONBackedObject object) {
+		return Versioning.insert(getDBCollection(collection), object
+				.getDBObject());
 	}
 
-	WriteResult update_pull(String collection, Object id, String fieldName,
-			BSONBackedObject objectToPull) {
-		return update(collection, id, new BasicDBObject("$pull",
-				new BasicBSONObject(fieldName, objectToPull.getBSONObject())));
+	WriteResult insert(String collection, DBObject object) {
+		return Versioning.insert(getDBCollection(collection), object);
 	}
 
 	@Override
@@ -174,5 +181,37 @@ public class V7CR extends Application implements HttpServletRequestListener {
 		if (messages == null)
 			messages = ResourceBundle.getBundle("v7cr.messages", getLocale());
 		return messages.getString(key);
+	}
+
+	@Override
+	public void terminalError(Terminal.ErrorEvent event) {
+		if (event.getThrowable().getCause() instanceof ConcurrentModificationException) {
+			// Finds the original source of the error/exception
+			Object owner = null;
+			if (event instanceof VariableOwner.ErrorEvent) {
+				owner = ((VariableOwner.ErrorEvent) event).getVariableOwner();
+			} else if (event instanceof URIHandler.ErrorEvent) {
+				owner = ((URIHandler.ErrorEvent) event).getURIHandler();
+			} else if (event instanceof ParameterHandler.ErrorEvent) {
+				owner = ((ParameterHandler.ErrorEvent) event)
+						.getParameterHandler();
+			} else if (event instanceof ChangeVariablesErrorEvent) {
+				owner = ((ChangeVariablesErrorEvent) event).getComponent();
+			}
+
+			// Shows the error in AbstractComponent
+			if (owner instanceof AbstractComponent) {
+				((AbstractComponent) owner).getWindow().showNotification(
+						getMessage("error.concurrentModification"),
+						getMessage("error.concurrentModification.message"),
+						Notification.TYPE_ERROR_MESSAGE);
+				return;
+			}
+
+		}
+
+		// Call the default implementation.
+		super.terminalError(event);
+
 	}
 }

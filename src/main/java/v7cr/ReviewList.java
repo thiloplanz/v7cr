@@ -19,20 +19,18 @@ package v7cr;
 
 import java.util.Locale;
 
-import org.bson.BSONObject;
 import org.bson.types.ObjectId;
 
 import v7cr.v7db.BSONBackedObject;
-import v7cr.v7db.BSONBackedObjectLoader;
 import v7cr.v7db.LocalizedString;
 import v7cr.v7db.SchemaDefinition;
+import v7cr.vaadin.DBCollectionContainer;
 import v7cr.vaadin.PossibleValuesColumnGenerator;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
-import com.vaadin.data.util.BeanContainer;
-import com.vaadin.data.util.filter.Compare;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.terminal.ThemeResource;
@@ -51,6 +49,8 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 	private final String projectName;
 
 	private final Table table;
+
+	private transient Object filterStatus;
 
 	ReviewList(String projectName) {
 		setIcon(new ThemeResource("../runo/icons/16/note.png"));
@@ -75,6 +75,9 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 		BSONBackedObject p = v7.load("projects", projectName);
 		setCaption(p.getStringField("name"));
 		table = new Table();
+		table.addGeneratedColumn("status", new PossibleValuesColumnGenerator(
+				Review.getReviewSchemaDefinition(), "s", l));
+
 		vl.addComponent(table);
 		setCompositionRoot(vl);
 		reload();
@@ -104,30 +107,41 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 	}
 
 	public void reload() {
-		// DBCollectionContainer reviews = new DBCollectionContainer(V7CR
-		// .getInstance().getDBCollection("reviews"), "c", false);
+		DBCollection coll = V7CR.getInstance().getDBCollection("reviews");
 
-		BeanContainer<ObjectId, Review> reviews = new BeanContainer<ObjectId, Review>(
-				Review.class);
-		reviews.setBeanIdProperty("id");
-		for (BSONObject o : V7CR.getInstance().getDBCollection("reviews").find(
-				new BasicDBObject("p", this.projectName)).sort(
-				new BasicDBObject("c", -1))) {
-			Review r = new Review(BSONBackedObjectLoader.wrap(o, null));
-			reviews.addBean(r);
-		}
-
-		table.setContainerDataSource(reviews);
-		reviews.addNestedContainerProperty("reviewee.name");
-		reviews.addNestedContainerProperty("SVNLogEntry.revision");
+		BasicDBObject filter = new BasicDBObject("p", projectName);
+		if (filterStatus != null)
+			filter.append("s", filterStatus);
 
 		SchemaDefinition sd = Review.getReviewSchemaDefinition();
-		Locale l = V7CR.getInstance().getLocale();
-		table.addGeneratedColumn("status", new PossibleValuesColumnGenerator(
-				sd, "s", l));
 
-		table.setVisibleColumns(new String[] { "status", "reviewee.name",
-				"registrationDate", "title", "SVNLogEntry.revision" });
+		DBCollectionContainer reviews = new DBCollectionContainer(sd, coll,
+				filter, "c", false);
+
+		// BeanContainer<ObjectId, Review> reviews = new BeanContainer<ObjectId,
+		// Review>(
+		// Review.class);
+		// reviews.setBeanIdProperty("id");
+		// for (BSONObject o :
+		// V7CR.getInstance().getDBCollection("reviews").find(
+		// new BasicDBObject("p", this.projectName)).sort(
+		// new BasicDBObject("c", -1))) {
+		// Review r = new Review(BSONBackedObjectLoader.wrap(o, null));
+		// reviews.addBean(r);
+		// }
+
+		table.setContainerDataSource(reviews);
+
+		reviews.addContainerProperty("reviewee.n", String.class, null);
+		reviews.addContainerProperty("svn.rev", String.class, null);
+
+		Locale l = V7CR.getInstance().getLocale();
+
+		// table.setVisibleColumns(new String[] { "status", "reviewee.name",
+		// "registrationDate", "title", "SVNLogEntry.revision" });
+
+		table.setVisibleColumns(new String[] { "status", "reviewee.n", "c",
+				"t", "svn.rev" });
 
 		table.setColumnHeaders(new String[] { sd.getFieldCaption("s", l),
 				sd.getFieldCaption("reviewee", l), sd.getFieldCaption("c", l),
@@ -139,13 +153,7 @@ class ReviewList extends CustomComponent implements ItemClickListener,
 	}
 
 	public void valueChange(ValueChangeEvent event) {
-		Object x = event.getProperty().getValue();
-
-		BeanContainer<?, ?> b = (BeanContainer<?, ?>) table
-				.getContainerDataSource();
-		b.removeAllContainerFilters();
-		if (x != null)
-			b.addContainerFilter(new Compare.Equal("status", x));
-
+		filterStatus = event.getProperty().getValue();
+		reload();
 	}
 }

@@ -122,7 +122,7 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 				form.commit();
 
 				V7CR v7 = V7CR.getInstance();
-				v7.save("projects", b);
+				v7.update("projects", b);
 				rightSide.removeAllComponents();
 				reload(v7);
 
@@ -157,13 +157,13 @@ class ProjectEditor extends CustomComponent implements ItemClickListener,
 				form.commit();
 
 				V7CR v7 = V7CR.getInstance();
-				v7.save("projects", b);
+				v7.insert("projects", b);
 				// also create the member role
 				DBObject r = new BasicDBObjectBuilder().add("_id",
 						"project:" + b.get("_id")).add("name",
 						"Reviewers of project '" + b.get("_id") + "'").get();
 
-				v7.save("roles", r);
+				v7.insert("roles", r);
 				rightSide.removeAllComponents();
 				reload(v7);
 
