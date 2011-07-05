@@ -43,14 +43,21 @@ public class OpenIDServlet extends HttpServlet {
 
 	private static final String ATTR_ALIAS = "jopenid.alias";
 
+	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws IOException, ServletException {
 
 		HttpSession session = request.getSession();
 		if (session.getAttribute(OPENID_AUTHENTICATION) == null) {
 			OpenIdManager manager = new OpenIdManager();
-			manager.setRealm("http://localhost:8080");
-			manager.setReturnTo("http://localhost:8080/v7cr/openid");
+			String realm = request.getScheme() + "://"
+					+ request.getServerName() + ":" + request.getServerPort();
+			manager.setRealm(realm);
+			manager.setReturnTo(realm + request.getContextPath()
+					+ request.getServletPath());
+			System.out.println(realm);
+			System.out.println(request.getContextPath()
+					+ request.getServletPath());
 			String op = request.getParameter("op");
 			if (op == null) {
 				String nonce = request.getParameter("openid.response_nonce");
@@ -58,21 +65,21 @@ public class OpenIDServlet extends HttpServlet {
 				checkNonce(nonce);
 				// get authentication:
 				byte[] mac_key = (byte[]) session.getAttribute(ATTR_MAC);
-				if (mac_key == null){
-					throw new SecurityException("session expired, please try again");
+				if (mac_key == null) {
+					throw new SecurityException(
+							"session expired, please try again");
 				}
 				String alias = (String) session.getAttribute(ATTR_ALIAS);
 				Authentication authentication = manager.getAuthentication(
 						request, mac_key, alias);
 				String email = authentication.getEmail();
-			
+
 				if (email == null || email.isEmpty())
 					throw new SecurityException("email address is required");
-				
-				
+
 				session.setAttribute(OPENID_AUTHENTICATION, authentication);
-				
-				response.sendRedirect(request.getContextPath()+"/v/");
+
+				response.sendRedirect(request.getContextPath() + "/v/");
 				return;
 			}
 			// redirect to sign on page:

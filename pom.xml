@@ -93,7 +93,8 @@
 							<!--
 								<resources>src/main/webapp,${project.build.directory}/${project.build.finalName}</resources>
 							-->
-							<resourcesAsCSV>src/main/webapp,${project.build.directory}/${project.build.finalName}</resourcesAsCSV>
+							<resourcesAsCSV>src/main/webapp,${project.build.directory}/${project.build.finalName}
+							</resourcesAsCSV>
 						</baseResource>
 					</webAppConfig>
 				</configuration>
@@ -112,23 +113,38 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>native2ascii-maven-plugin</artifactId>
 				<version>1.0-alpha-1</version>
-						<!-- specific configurations -->
-						<configuration>
-							<encoding>UTF8</encoding>
-						</configuration>
-				
-				</plugin>
-				<plugin>
-        			<groupId>net.sf.alchim</groupId>
-        			<artifactId>winstone-maven-plugin</artifactId>
-      			</plugin>
+				<!-- specific configurations -->
+				<configuration>
+					<encoding>UTF8</encoding>
+				</configuration>
+
+			</plugin>
+			<plugin>
+				<groupId>net.sf.alchim</groupId>
+				<artifactId>winstone-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>v7cr.svntest</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 
 	<repositories>
 		<repository>
 			<id>vaadin-snapshots</id>
-			<url>http://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
+			<url>http://oss.sonatype.org/content/repositories/vaadin-snapshots/
+			</url>
 			<releases>
 				<enabled>false</enabled>
 			</releases>
