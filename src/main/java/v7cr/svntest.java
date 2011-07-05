@@ -57,7 +57,8 @@ public class svntest {
 		DB db = new Mongo().getDB("v7cr");
 
 		final Project project = new Project(BSONBackedObjectLoader.wrap(db
-				.getCollection("projects").findOne("sanction-route"), null));
+				.getCollection("projects")
+				.findOne("bitcoinj" /* sanction-route */), null));
 
 		final DBCollection reviews = db.getCollection("reviews");
 

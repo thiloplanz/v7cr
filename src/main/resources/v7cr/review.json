@@ -20,7 +20,9 @@
     		"caption" : { '_': 'Registration Date', 'ja': '登録日時' }
     	},
     	'svn' : {
-    		'fields' : { 'rev' : { 'caption' : { '_' : 'revision', 'ja': 'リビション' } } }
+    		'fields' : { 'rev' : { 'caption' : { '_' : 'revision', 'ja': 'リビション' } },
+    				     'changed' : { 'caption' : { '_' : 'changed files', 'ja': '更新箇所' } },
+    			 }
     	},
     	'p' : {
     		'caption' : { '_' : 'Project' , 'ja' : 'プロジェクト' }

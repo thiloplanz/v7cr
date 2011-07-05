@@ -21,7 +21,11 @@ import static org.tmatesoft.svn.core.SVNRevisionProperty.AUTHOR;
 import static org.tmatesoft.svn.core.SVNRevisionProperty.DATE;
 import static org.tmatesoft.svn.core.SVNRevisionProperty.LOG;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -29,6 +33,7 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
 import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.internal.util.SVNDate;
 
@@ -85,8 +90,20 @@ public class Review extends BSONBackedObject {
 		props.put(AUTHOR, b.getStringField(AUTHOR));
 		props.put(DATE, SVNDate.formatDate(b.getDateField(DATE)));
 		props.put(LOG, b.getStringField(LOG));
-		SVNLogEntry svn = new SVNLogEntry(null, b.getLongField("rev"), props,
-				false);
+		Map<String, SVNLogEntryPath> changedPaths = null;
+		BSONBackedObject[] changed = b.getObjectFieldAsArray("changed");
+		if (changed != null) {
+			changedPaths = new TreeMap<String, SVNLogEntryPath>();
+			for (BSONBackedObject c : changed) {
+				String p = c.getStringField("p");
+				String t = c.getStringField("t");
+				changedPaths.put(p, new SVNLogEntryPath(p, t.charAt(0), null,
+						-1));
+			}
+		}
+
+		SVNLogEntry svn = new SVNLogEntry(changedPaths, b.getLongField("rev"),
+				props, false);
 		return svn;
 	}
 
@@ -96,6 +113,21 @@ public class Review extends BSONBackedObject {
 		svn.put(AUTHOR, logEntry.getAuthor());
 		svn.put(DATE, logEntry.getDate());
 		svn.put(LOG, logEntry.getMessage());
+		Map<String, SVNLogEntryPath> changedPaths = logEntry.getChangedPaths();
+		if (changedPaths != null && !changedPaths.isEmpty()) {
+			List<BSONObject> c = new ArrayList<BSONObject>(changedPaths.size());
+			for (SVNLogEntryPath p : changedPaths.values()) {
+				BSONObject cp = new BasicBSONObject();
+				cp.put("p", p.getPath());
+				cp.put("t", String.valueOf(p.getType()));
+				if (p.getCopyPath() != null) {
+					cp.put("cp", p.getCopyPath());
+					cp.put("crev", p.getCopyRevision());
+				}
+				c.add(cp);
+			}
+			svn.put("changed", c);
+		}
 		return svn;
 	}
 

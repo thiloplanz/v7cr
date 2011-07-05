@@ -172,6 +172,7 @@ public class V7CR extends Application implements HttpServletRequestListener {
 				addWindow(reviewWindow);
 				return reviewWindow;
 			}
+			throw new IllegalArgumentException(name);
 		}
 
 		return null;

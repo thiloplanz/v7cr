@@ -17,15 +17,23 @@
 
 package v7cr;
 
+import static org.apache.commons.lang.ArrayUtils.EMPTY_STRING_ARRAY;
+
 import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.bson.types.ObjectId;
 import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
 
 import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.LocalizedString;
@@ -44,6 +52,7 @@ import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TextArea;
+import com.vaadin.ui.Tree;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -351,7 +360,106 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		link.setIcon(new ThemeResource("../runo/icons/16/arrow-right.png"));
 		p.addComponent(link);
 		grid.addComponent(new Label(svn.getMessage()), 1, 1, 3, 1);
+
+		Map<String, SVNLogEntryPath> changed = svn.getChangedPaths();
+
+		if (changed != null) {
+			Tree changeTree = new Tree(sd.getFieldCaption("svn.fields.changed",
+					l)
+					+ "(" + changed.size() + ")");
+			Set<String> paths = changed.keySet();
+			for (String s : changed.keySet()) {
+				changeTree.addItem(s);
+				changeTree.setChildrenAllowed(s, false);
+				changeTree
+						.setItemCaption(s, changed.get(s).getType() + " " + s);
+			}
+			if (paths.size() > 5) {
+				compressTree(changeTree, paths);
+			}
+
+			grid.addComponent(changeTree, 0, 2, 3, 2);
+		}
 		return p;
+	}
+
+	private String connectPath(Tree tree, String node) {
+		tree.addItem(node);
+		tree.setChildrenAllowed(node, true);
+		String pp = StringUtils.substringBeforeLast(StringUtils
+				.substringBeforeLast(node, "/"), "/")
+				+ "/";
+		while (true) {
+			if (tree.containsId(pp)) {
+				tree.setParent(node, pp);
+				return pp;
+			}
+			pp = StringUtils.substringBeforeLast(StringUtils
+					.substringBeforeLast(pp, "/"), "/")
+					+ "/";
+			if ("/".equals(pp))
+				return pp;
+		}
+	}
+
+	// introduce intermediate nodes (for common prefixes) to make the tree more
+	// even
+	private void compressTree(Tree tree, Collection<String> nodes) {
+
+		List<String> orgPaths = new ArrayList<String>(nodes);
+
+		int end = orgPaths.size();
+
+		for (int start = 0; start < end; start++) {
+			String prefix = StringUtils.getCommonPrefix(orgPaths.subList(start,
+					end).toArray(EMPTY_STRING_ARRAY));
+			if (!prefix.endsWith("/")) {
+				prefix = StringUtils.substringBeforeLast(prefix, "/") + "/";
+			}
+			String first = orgPaths.get(start);
+			String extendedPrefix = prefix
+					+ StringUtils.substringBefore(first.substring(prefix
+							.length()), "/");
+			if (!extendedPrefix.equals(first)) {
+				extendedPrefix += "/";
+				if (tree.containsId(prefix)) {
+					tree.addItem(extendedPrefix);
+					tree.setParent(extendedPrefix, prefix);
+				} else {
+					tree.setParent(extendedPrefix, connectPath(tree,
+							extendedPrefix));
+				}
+				tree.setChildrenAllowed(extendedPrefix, true);
+				int last;
+				for (last = start; last < end; last++) {
+					String l = orgPaths.get(last);
+					if (l.startsWith(extendedPrefix)) {
+						tree.setParent(l, extendedPrefix);
+					} else {
+						last++;
+						break;
+					}
+				}
+				tree.setItemCaption(extendedPrefix, extendedPrefix + "("
+						+ (last - 1 - start) + ")");
+
+				if (last - start > 5) {
+					compressTree(tree, orgPaths.subList(start, last - 1));
+				}
+				start = last - 1;
+
+			} else {
+				if (!tree.containsId(prefix)) {
+					prefix = connectPath(tree, prefix);
+				}
+
+				if (!prefix.equals(first)) {
+					tree.setParent(first, prefix);
+				}
+
+			}
+		}
+
 	}
 
 	public void buttonClick(ClickEvent event) {
