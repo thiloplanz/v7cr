@@ -118,6 +118,10 @@
 						</configuration>
 				
 				</plugin>
+				<plugin>
+        			<groupId>net.sf.alchim</groupId>
+        			<artifactId>winstone-maven-plugin</artifactId>
+      			</plugin>
 		</plugins>
 	</build>
 
