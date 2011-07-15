@@ -63,15 +63,27 @@ public class SchemaDefinition {
 	private final SchemaDefinition parent;
 
 	public SchemaDefinition(BSONBackedObject bson) {
-		this.bson = bson;
-		fields = bson.getObjectField(FIELDS);
-		parent = null;
+		this(bson, null);
 	}
 
 	private SchemaDefinition(BSONBackedObject bson, SchemaDefinition parent) {
 		this.bson = bson;
-		fields = bson.getObjectField(FIELDS);
 		this.parent = parent;
+		BSONBackedObject f = bson.getObjectField(FIELDS);
+		if (f == null) {
+			// support field definitions in a nested dataType
+			// but only if there is just one option
+			String[] dt = getDataTypes();
+			if (dt.length == 1 && dt[0].startsWith(":")) {
+				SchemaDefinition type = getType(dt[0].substring(1));
+				if (type == null) {
+					System.err.println("unresolved nested dataType " + dt[0]);
+				} else {
+					f = type.fields;
+				}
+			}
+		}
+		fields = f;
 	}
 
 	SchemaDefinition(BasicBSONObject bson) {
@@ -93,22 +105,47 @@ public class SchemaDefinition {
 	 * The caption should be used in user interface elements (such as form input
 	 * labels or table headers) to name the field
 	 * 
-	 * @return the caption for the named field
+	 * @return the caption for the named field (or null, if unspecified)
 	 */
 	public LocalizedString getFieldCaption(String fieldName) {
-		// TODO: properly support nested fields "a.b" => "a.fields.b"
-		return LocalizedString.get(fields, fieldName + ".caption");
+		SchemaDefinition sd = getFieldDefinition(fieldName);
+		if (sd == null)
+			return null;
+
+		return LocalizedString.get(sd.bson, "caption");
 	}
 
+	/**
+	 * The caption should be used in user interface elements (such as form input
+	 * labels or table headers) to name the field
+	 * 
+	 * @return the caption for the named field (or null, if unspecified)
+	 */
+
 	public String getFieldCaption(String fieldName, Locale l) {
-		// TODO: properly support nested fields "a.b" => "a.fields.b"
-		return LocalizedString.get(fields, fieldName + ".caption", l);
+		SchemaDefinition sd = getFieldDefinition(fieldName);
+		if (sd == null)
+			return null;
+
+		return LocalizedString.get(sd.bson, "caption", l);
 	}
+
+	/**
+	 * Returns the definition for the named field.
+	 */
 
 	public SchemaDefinition getFieldDefinition(String fieldName) {
 		if (fields == null)
 			return null;
-		// TODO: properly support nested fields "a.b" => "a.fields.b"
+		int idx = fieldName.indexOf('.');
+		if (idx > -1) {
+			String first = fieldName.substring(0, idx);
+			SchemaDefinition d = getFieldDefinition(first);
+			if (d == null)
+				return null;
+			return d.getFieldDefinition(fieldName.substring(idx + 1));
+		}
+
 		BSONBackedObject field = fields.getObjectField(fieldName);
 		if (field == null)
 			return null;

@@ -56,7 +56,7 @@ class UserEditor extends CustomComponent implements ClickListener {
 		userForm.addField("name", name);
 
 		userForm.getLayout().addComponent(
-				new Button(v7.getMessage("button.create")));
+				new Button(v7.getMessage("button.create"), this));
 		hl.addComponent(userForm);
 
 	}
@@ -73,6 +73,7 @@ class UserEditor extends CustomComponent implements ClickListener {
 			connect = connect.addMember(ac);
 			v7cr.update("roles", connect);
 		} catch (InvalidValueException e) {
+			e.printStackTrace();
 		}
 	}
 

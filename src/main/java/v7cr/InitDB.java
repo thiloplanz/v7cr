@@ -58,6 +58,7 @@ public class InitDB implements ServletContextListener {
 				List<DBObject> l = (List<DBObject>) JSON.parse(json);
 				DBCollection roles = getDBCollection(c, "roles");
 				for (DBObject r : l) {
+					r.put("_version", 1);
 					roles.save(r);
 				}
 

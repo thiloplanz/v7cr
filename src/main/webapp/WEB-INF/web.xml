@@ -18,56 +18,64 @@
 
 -->
 
-<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" id="WebApp_ID" version="2.5">
-    <display-name>Vaadin Web Application</display-name>
-    <context-param>
-        <description>Vaadin production mode</description>
-        <param-name>productionMode</param-name>
-        <param-value>false</param-value>
-    </context-param>
-    <filter>
-    	<filter-name>authcheck</filter-name>
-    	<filter-class>v7cr.AuthFilter</filter-class>
-    </filter>
-    <servlet>
-        <servlet-name>Vaadin Application Servlet</servlet-name>
-        <servlet-class>com.vaadin.terminal.gwt.server.ApplicationServlet</servlet-class>
-        <init-param>
-            <description>Vaadin application class to start</description>
-            <param-name>application</param-name>
-            <param-value>v7cr.V7CR</param-value>
-        </init-param>
-    </servlet>
-    <servlet>
-    	<servlet-name>Test Login</servlet-name>
-    	<servlet-class>v7cr.TestLogin</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>Vaadin Application Servlet</servlet-name>
-        <url-pattern>/v/*</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>Vaadin Application Servlet</servlet-name>
-        <url-pattern>/VAADIN/*</url-pattern>
-    </servlet-mapping>
-   	<servlet-mapping>
-        <servlet-name>Test Login</servlet-name>
-        <url-pattern>/testLogin</url-pattern>
-    </servlet-mapping> 
-   	<filter-mapping>
-   		<filter-name>authcheck</filter-name>
-   		<servlet-name>Vaadin Application Servlet</servlet-name>
-   	</filter-mapping>
-    <servlet>
-        <servlet-name>OpenID Servlet</servlet-name>
-        <servlet-class>v7cr.OpenIDServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>OpenID Servlet</servlet-name>
-        <url-pattern>/openid</url-pattern>
-    </servlet-mapping>
-    <listener>
-    	<listener-class>v7cr.InitDB</listener-class>
-    </listener>
-    
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	id="WebApp_ID" version="2.5">
+	<display-name>Vaadin Web Application</display-name>
+	<context-param>
+		<description>Vaadin production mode</description>
+		<param-name>productionMode</param-name>
+		<param-value>false</param-value>
+	</context-param>
+	<filter>
+		<filter-name>authcheck</filter-name>
+		<filter-class>v7cr.AuthFilter</filter-class>
+	</filter>
+	<servlet>
+		<servlet-name>Vaadin Application Servlet</servlet-name>
+		<servlet-class>com.vaadin.terminal.gwt.server.ApplicationServlet</servlet-class>
+		<init-param>
+			<description>Vaadin application class to start</description>
+			<param-name>application</param-name>
+			<param-value>v7cr.V7CR</param-value>
+		</init-param>
+		<init-param>
+			<description>Application widgetset</description>
+			<param-name>widgetset</param-name>
+			<param-value>gwt.MyWidgetSet</param-value>
+		</init-param>
+	</servlet>
+	<servlet>
+		<servlet-name>Test Login</servlet-name>
+		<servlet-class>v7cr.TestLogin</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>Vaadin Application Servlet</servlet-name>
+		<url-pattern>/v/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>Vaadin Application Servlet</servlet-name>
+		<url-pattern>/VAADIN/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>Test Login</servlet-name>
+		<url-pattern>/testLogin</url-pattern>
+	</servlet-mapping>
+	<filter-mapping>
+		<filter-name>authcheck</filter-name>
+		<servlet-name>Vaadin Application Servlet</servlet-name>
+	</filter-mapping>
+	<servlet>
+		<servlet-name>OpenID Servlet</servlet-name>
+		<servlet-class>v7cr.OpenIDServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>OpenID Servlet</servlet-name>
+		<url-pattern>/openid</url-pattern>
+	</servlet-mapping>
+	<listener>
+		<listener-class>v7cr.InitDB</listener-class>
+	</listener>
+
 </web-app>

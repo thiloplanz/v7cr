@@ -19,6 +19,8 @@ package v7cr;
 
 import static org.apache.commons.lang.ArrayUtils.EMPTY_STRING_ARRAY;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,15 +36,18 @@ import org.apache.commons.lang.time.DurationFormatUtils;
 import org.bson.types.ObjectId;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNLogEntryPath;
+import org.vaadin.easyuploads.MultiFileUpload;
 
 import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.LocalizedString;
 import v7cr.v7db.SchemaDefinition;
 
+import com.mongodb.gridfs.GridFSFile;
 import com.vaadin.terminal.ExternalResource;
 import com.vaadin.terminal.ThemeResource;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
@@ -69,6 +74,8 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 	private OptionGroup voteOptions;
 
+	private ComponentContainer fileArea;
+
 	ReviewTab(ObjectId id) {
 		setIcon(new ThemeResource("../runo/icons/16/document-txt.png"));
 
@@ -78,7 +85,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 	}
 
 	private void reload() {
-		V7CR v7 = V7CR.getInstance();
+		final V7CR v7 = V7CR.getInstance();
 		r = new Review(v7.load("reviews", reviewId));
 		Project p = new Project(v7.load("projects", r.getProjectName()));
 		SVNLogEntry svn = r.getSVNLogEntry();
@@ -128,6 +135,24 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 			commentGrid.addComponent(voteOptions);
 
 			vl.addComponent(commentGrid);
+			fileArea = new VerticalLayout();
+			vl.addComponent(fileArea);
+			MultiFileUpload uploader = new MultiFileUpload() {
+
+				@Override
+				protected void handleFile(File file, String fileName,
+						String mimeType, long length) {
+					try {
+						GridFSFile gf = v7.storeFile(file, fileName);
+						TemporaryFile tf = new TemporaryFile(v7, gf);
+						fileArea.addComponent(tf);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			};
+
+			vl.addComponent(uploader);
 
 			Button submitButton = new Button(v7.getMessage("button.submit"));
 			submitButton.addListener(this);
@@ -190,13 +215,24 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 			}
 			p.addComponent(icon);
 			setCompositionRoot(p);
+			V7CR v7 = V7CR.getInstance();
+
+			BSONBackedObject[] files = data.getObjectFieldAsArray("files");
+			if (files != null) {
+				for (BSONBackedObject f : files) {
+					String fn = f.getStringField("filename");
+					ObjectId fileId = f.getObjectIdField("_id");
+					if (fileId != null)
+						grid.addComponent(new Link(fn, new GridFSResource(v7,
+								fileId, fn)), 0, grid.getCursorY(), 2, grid
+								.getCursorY());
+				}
+			}
 
 			// the last comment can still be edited for some time
 			long timeLeft = created.getTime() + 30 * 60 * 1000
 					- System.currentTimeMillis();
 			if (timeLeft > 0) {
-
-				V7CR v7 = V7CR.getInstance();
 
 				p.addComponent(new Button(v7.getMessage("button.edit"),
 						new Button.ClickListener() {
@@ -348,7 +384,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		grid.setSizeFull();
 		p.setContent(grid);
 		grid.setSpacing(true);
-		p.addComponent(new Label(sd.getFieldCaption("svn.fields.rev", l)));
+		p.addComponent(new Label(sd.getFieldCaption("svn.rev", l)));
 		p.addComponent(new Label("" + svn.getRevision()));
 		p.addComponent(new Label(DateFormat.getDateTimeInstance().format(
 				svn.getDate())));
@@ -364,8 +400,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 		Map<String, SVNLogEntryPath> changed = svn.getChangedPaths();
 
 		if (changed != null) {
-			Tree changeTree = new Tree(sd.getFieldCaption("svn.fields.changed",
-					l)
+			Tree changeTree = new Tree(sd.getFieldCaption("svn.changed", l)
 					+ "(" + changed.size() + ")");
 			Set<String> paths = changed.keySet();
 			for (String s : changed.keySet()) {
@@ -479,7 +514,7 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 
 		V7CR v7cr = V7CR.getInstance();
 		v7cr.update("reviews", r.addVote(v7cr.getSessionUser(), new Date(),
-				comment, vote));
+				comment, vote, fileArea));
 
 		reload();
 	}

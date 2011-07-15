@@ -17,6 +17,9 @@
 
 package v7cr;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -41,6 +44,9 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
+import com.mongodb.gridfs.GridFS;
+import com.mongodb.gridfs.GridFSDBFile;
+import com.mongodb.gridfs.GridFSFile;
 import com.vaadin.Application;
 import com.vaadin.terminal.ParameterHandler;
 import com.vaadin.terminal.Terminal;
@@ -142,6 +148,22 @@ public class V7CR extends Application implements HttpServletRequestListener {
 
 	WriteResult insert(String collection, DBObject object) {
 		return Versioning.insert(getDBCollection(collection), object);
+	}
+
+	GridFSFile storeFile(File file, String fileName) throws IOException {
+		WebApplicationContext context = (WebApplicationContext) getContext();
+		GridFS fs = new GridFS(InitDB.getDB(context.getHttpSession()
+				.getServletContext()));
+		GridFSFile f = fs.createFile(new FileInputStream(file), fileName);
+		f.save();
+		return f;
+	}
+
+	GridFSDBFile getFile(ObjectId fileId) {
+		WebApplicationContext context = (WebApplicationContext) getContext();
+		GridFS fs = new GridFS(InitDB.getDB(context.getHttpSession()
+				.getServletContext()));
+		return fs.find(fileId);
 	}
 
 	@Override

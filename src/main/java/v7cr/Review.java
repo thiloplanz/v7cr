@@ -23,6 +23,7 @@ import static org.tmatesoft.svn.core.SVNRevisionProperty.LOG;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -41,6 +42,9 @@ import v7cr.v7db.AccountInfo;
 import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.BSONBackedObjectLoader;
 import v7cr.v7db.SchemaDefinition;
+
+import com.vaadin.ui.Component;
+import com.vaadin.ui.ComponentContainer;
 
 public class Review extends BSONBackedObject {
 
@@ -140,9 +144,20 @@ public class Review extends BSONBackedObject {
 	}
 
 	public Review addVote(AccountInfo user, Date date, String comment,
-			String vote) {
+			String vote, ComponentContainer files) {
 		BSONObject v = new BasicBSONObject("c", comment).append("d", date)
 				.append("v", vote).append("by", user.getBSONObject());
+		if (files != null) {
+			Iterator<Component> fi = files.getComponentIterator();
+			List<BSONObject> fileData = new ArrayList<BSONObject>();
+			while (fi.hasNext()) {
+				TemporaryFile f = (TemporaryFile) fi.next();
+				fileData.add(f.file);
+			}
+			if (!fileData.isEmpty()) {
+				v.put("files", fileData);
+			}
+		}
 		Review r = new Review(push("v", BSONBackedObjectLoader.wrap(v, null)))
 				.updateStatus();
 		return r;
