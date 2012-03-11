@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -219,6 +220,10 @@ public class BSONBackedObject {
 				i++;
 			}
 			return a;
+		}
+		if (o instanceof byte[]) {
+			byte[] b = (byte[]) o;
+			return ArrayUtils.clone(b);
 		}
 		throw new RuntimeException("unsupported field type "
 				+ o.getClass().getName() + " for '" + field + "' : " + o);

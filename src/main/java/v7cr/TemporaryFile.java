@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -17,7 +17,8 @@
 
 package v7cr;
 
-import com.mongodb.gridfs.GridFSFile;
+import v7cr.v7db.BSONBackedObject;
+
 import com.vaadin.ui.Button;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomComponent;
@@ -28,15 +29,15 @@ import com.vaadin.ui.Button.ClickListener;
 
 class TemporaryFile extends CustomComponent implements ClickListener {
 
-	TemporaryFile(V7CR v7, GridFSFile file) {
+	TemporaryFile(V7CR v7, BSONBackedObject file) {
 		this.file = file;
 		HorizontalLayout hl = new HorizontalLayout();
 		setCompositionRoot(hl);
-		hl.addComponent(new Label(file.getFilename()));
+		hl.addComponent(new Label(file.getStringField("files.file.filename")));
 		hl.addComponent(new Button(v7.getMessage("button.delete"), this));
 	}
 
-	final GridFSFile file;
+	final BSONBackedObject file;
 
 	public void buttonClick(ClickEvent event) {
 		((ComponentContainer) getParent()).removeComponent(this);

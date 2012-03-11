@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -55,8 +55,10 @@ public class BSONBackedObjectLoader {
 
 	public static BSONBackedObject findOne(DBCollection collection, Object id,
 			SchemaDefinition schema) {
-		return new BSONBackedObject((BasicBSONObject) collection.findOne(id),
-				schema);
+		BasicBSONObject o = (BasicBSONObject) collection.findOne(id);
+		if (o == null)
+			return null;
+		return new BSONBackedObject(o, schema);
 	}
 
 }

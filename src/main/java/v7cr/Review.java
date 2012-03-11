@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -152,7 +152,7 @@ public class Review extends BSONBackedObject {
 			List<BSONObject> fileData = new ArrayList<BSONObject>();
 			while (fi.hasNext()) {
 				TemporaryFile f = (TemporaryFile) fi.next();
-				fileData.add(f.file);
+				fileData.add(f.file.getBSONObject());
 			}
 			if (!fileData.isEmpty()) {
 				v.put("files", fileData);

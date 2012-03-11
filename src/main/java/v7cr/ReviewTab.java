@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -42,7 +42,6 @@ import v7cr.v7db.BSONBackedObject;
 import v7cr.v7db.LocalizedString;
 import v7cr.v7db.SchemaDefinition;
 
-import com.mongodb.gridfs.GridFSFile;
 import com.vaadin.terminal.ExternalResource;
 import com.vaadin.terminal.ThemeResource;
 import com.vaadin.ui.Button;
@@ -143,7 +142,8 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 				protected void handleFile(File file, String fileName,
 						String mimeType, long length) {
 					try {
-						GridFSFile gf = v7.storeFile(file, fileName);
+						BSONBackedObject gf = v7.storeFile(file, fileName,
+								mimeType);
 						TemporaryFile tf = new TemporaryFile(v7, gf);
 						fileArea.addComponent(tf);
 					} catch (IOException e) {
@@ -220,12 +220,10 @@ public class ReviewTab extends CustomComponent implements ClickListener {
 			BSONBackedObject[] files = data.getObjectFieldAsArray("files");
 			if (files != null) {
 				for (BSONBackedObject f : files) {
-					String fn = f.getStringField("filename");
-					ObjectId fileId = f.getObjectIdField("_id");
-					if (fileId != null)
-						grid.addComponent(new Link(fn, new GridFSResource(v7,
-								fileId, fn)), 0, grid.getCursorY(), 2, grid
-								.getCursorY());
+					Link downloadLink = v7.getFile(f);
+					if (downloadLink != null)
+						grid.addComponent(downloadLink, 0, grid.getCursorY(),
+								2, grid.getCursorY());
 				}
 			}
 

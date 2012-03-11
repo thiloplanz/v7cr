@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -17,9 +17,12 @@
 
 package v7cr;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -30,7 +33,15 @@ import java.util.ResourceBundle;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.bson.types.ObjectId;
 
 import v7cr.v7db.AccountInfo;
@@ -44,18 +55,19 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSDBFile;
-import com.mongodb.gridfs.GridFSFile;
 import com.vaadin.Application;
+import com.vaadin.terminal.ExternalResource;
 import com.vaadin.terminal.ParameterHandler;
+import com.vaadin.terminal.StreamResource;
 import com.vaadin.terminal.Terminal;
 import com.vaadin.terminal.URIHandler;
 import com.vaadin.terminal.VariableOwner;
+import com.vaadin.terminal.StreamResource.StreamSource;
 import com.vaadin.terminal.gwt.server.ChangeVariablesErrorEvent;
 import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 import com.vaadin.terminal.gwt.server.WebApplicationContext;
 import com.vaadin.ui.AbstractComponent;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.Window.Notification;
 
@@ -150,20 +162,52 @@ public class V7CR extends Application implements HttpServletRequestListener {
 		return Versioning.insert(getDBCollection(collection), object);
 	}
 
-	GridFSFile storeFile(File file, String fileName) throws IOException {
-		WebApplicationContext context = (WebApplicationContext) getContext();
-		GridFS fs = new GridFS(InitDB.getDB(context.getHttpSession()
-				.getServletContext()));
-		GridFSFile f = fs.createFile(new FileInputStream(file), fileName);
-		f.save();
-		return f;
+	BSONBackedObject storeFile(File file, String fileName, String mimeType)
+			throws IOException {
+		HttpClient http = new DefaultHttpClient();
+		HttpPost post = new HttpPost("http://0.0.0.0:8088/upload/v7cr");
+		FileBody body = new FileBody(file, fileName, mimeType, null);
+		MultipartEntity multipart = new MultipartEntity();
+		multipart.addPart("file", body);
+		post.setEntity(multipart);
+		HttpResponse response = http.execute(post);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new IOException("failed to save " + fileName + ": "
+					+ response.getStatusLine());
+		}
+
+		byte[] bson = IOUtils.toByteArray(response.getEntity().getContent());
+		return BSONBackedObjectLoader.decode(bson, null);
 	}
 
-	GridFSDBFile getFile(ObjectId fileId) {
-		WebApplicationContext context = (WebApplicationContext) getContext();
-		GridFS fs = new GridFS(InitDB.getDB(context.getHttpSession()
-				.getServletContext()));
-		return fs.find(fileId);
+	Link getFile(BSONBackedObject file) {
+		String fn = file.getStringField("files.file.filename");
+		if (fn == null)
+			return null;
+		final byte[] inlineData = (byte[]) file.getField("files.file.in");
+		if (inlineData != null)
+			return new Link(fn, new StreamResource(new StreamSource() {
+
+				public InputStream getStream() {
+					return new ByteArrayInputStream(inlineData);
+				}
+			}, fn, this));
+
+		try {
+			fn = URLEncoder.encode(fn, "UTF-8");
+		} catch (Exception e) {
+			fn = "";
+		}
+		URL url = getURL();
+		return new Link(fn,
+				new ExternalResource(url.getProtocol()
+						+ "://"
+						+ url.getHost()
+						+ ":8088/upload/v7cr?filename="
+						+ fn
+						+ "&sha="
+						+ Hex.encodeHexString((byte[]) file
+								.getField("files.file.sha"))));
 	}
 
 	@Override

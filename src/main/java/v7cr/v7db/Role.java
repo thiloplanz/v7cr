@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Thilo Planz. All rights reserved.
+ * Copyright (c) 2011-2012, Thilo Planz. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -25,8 +25,6 @@ import org.apache.commons.io.IOUtils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
-import v7cr.Review;
-
 public class Role extends BSONBackedObject {
 
 	private static final SchemaDefinition schema;
@@ -34,7 +32,7 @@ public class Role extends BSONBackedObject {
 	static {
 		try {
 			schema = new SchemaDefinition(BSONBackedObjectLoader.parse(IOUtils
-					.toString(Review.class.getResourceAsStream("role.json"),
+					.toString(Role.class.getResourceAsStream("role.json"),
 							"UTF-8"), null));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
