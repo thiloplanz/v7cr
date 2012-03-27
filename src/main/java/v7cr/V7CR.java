@@ -17,12 +17,9 @@
 
 package v7cr;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -33,15 +30,15 @@ import java.util.ResourceBundle;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 
 import v7cr.v7db.AccountInfo;
@@ -58,11 +55,9 @@ import com.mongodb.WriteResult;
 import com.vaadin.Application;
 import com.vaadin.terminal.ExternalResource;
 import com.vaadin.terminal.ParameterHandler;
-import com.vaadin.terminal.StreamResource;
 import com.vaadin.terminal.Terminal;
 import com.vaadin.terminal.URIHandler;
 import com.vaadin.terminal.VariableOwner;
-import com.vaadin.terminal.StreamResource.StreamSource;
 import com.vaadin.terminal.gwt.server.ChangeVariablesErrorEvent;
 import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 import com.vaadin.terminal.gwt.server.WebApplicationContext;
@@ -165,49 +160,32 @@ public class V7CR extends Application implements HttpServletRequestListener {
 	BSONBackedObject storeFile(File file, String fileName, String mimeType)
 			throws IOException {
 		HttpClient http = new DefaultHttpClient();
-		HttpPost post = new HttpPost("http://0.0.0.0:8088/upload/v7cr");
-		FileBody body = new FileBody(file, fileName, mimeType, null);
-		MultipartEntity multipart = new MultipartEntity();
-		multipart.addPart("file", body);
-		post.setEntity(multipart);
-		HttpResponse response = http.execute(post);
+		HttpPut put = new HttpPut("http://0.0.0.0:8088/upload/v7cr");
+		put.setEntity(new FileEntity(file, mimeType));
+		HttpResponse response = http.execute(put);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new IOException("failed to save " + fileName + ": "
 					+ response.getStatusLine());
 		}
 
-		byte[] bson = IOUtils.toByteArray(response.getEntity().getContent());
-		return BSONBackedObjectLoader.decode(bson, null);
+		String sha = IOUtils.toString(response.getEntity().getContent());
+		BSONObject r = new BasicBSONObject("sha", sha);
+		r.put("filename", fileName);
+		r.put("contentType", mimeType);
+		r.put("length", file.length());
+		return BSONBackedObjectLoader.wrap(r, null);
 	}
 
 	Link getFile(BSONBackedObject file) {
-		String fn = file.getStringField("files.file.filename");
-		if (fn == null)
+		String fn = file.getStringField("filename");
+		String sha = file.getStringField("sha");
+		if (fn == null || sha == null)
 			return null;
-		final byte[] inlineData = (byte[]) file.getField("files.file.in");
-		if (inlineData != null)
-			return new Link(fn, new StreamResource(new StreamSource() {
 
-				public InputStream getStream() {
-					return new ByteArrayInputStream(inlineData);
-				}
-			}, fn, this));
-
-		try {
-			fn = URLEncoder.encode(fn, "UTF-8");
-		} catch (Exception e) {
-			fn = "";
-		}
 		URL url = getURL();
-		return new Link(fn,
-				new ExternalResource(url.getProtocol()
-						+ "://"
-						+ url.getHost()
-						+ ":8088/upload/v7cr?filename="
-						+ fn
-						+ "&sha="
-						+ Hex.encodeHexString((byte[]) file
-								.getField("files.file.sha"))));
+		return new Link(fn, new ExternalResource(url.getProtocol() + "://"
+				+ url.getHost() + ":8088/upload/v7cr?filename=" + fn + "&sha="
+				+ sha));
 	}
 
 	@Override
